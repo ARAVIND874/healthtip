@@ -1,0 +1,42 @@
+# netlify.toml
+
+# The 'build' section defines how Netlify should build your site.
+[build]
+  # 'publish' specifies the directory that contains the deployable assets
+  # after your build process (or where your static files are located).
+  # For your 'health-guide-app', the main HTML, CSS, and client-side JS are in 'public'.
+  publish = "public"
+
+  # 'command' specifies the command to run to build your site.
+  # If your project is purely static and you're just uploading files,
+  # a simple echo command is sufficient.
+  # If you had a frontend framework (like React, Vue, Angular), this would be:
+  # command = "npm run build"
+  command = "echo 'Static site, no complex build command needed.'"
+
+# The 'functions' section configures Netlify Functions.
+[functions]
+  # 'directory' specifies the path to your serverless functions.
+  # This is where Netlify will look for files like 'hello.js'.
+  directory = "netlify/functions"
+
+  # Optional: You can specify a runtime bundler for Node.js functions.
+  # 'esbuild' is often faster for bundling Node.js functions.
+  # node_bundler = "esbuild"
+
+# Optional: Redirects and rewrites can be configured here.
+# This is useful if you want to create clean URLs for your functions,
+# or handle other routing logic.
+# For example, to redirect requests from '/api/hello' to your 'hello' function:
+# [[redirects]]
+#   from = "/api/hello"
+#   to = "/.netlify/functions/hello"
+#   status = 200
+#   force = true # Forces the redirect even if a file exists at 'from'
+
+# Another common redirect for single-page applications (SPAs)
+# to ensure all paths fall back to index.html:
+# [[redirects]]
+#   from = "/*"
+#   to = "/index.html"
+#   status = 200
