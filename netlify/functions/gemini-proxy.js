@@ -46,8 +46,8 @@ exports.handler = async (event, context) => {
     };
 
     // Define the Gemini API URL
-   const apiKey = ""; // Canvas will provide this
-const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+    // UPDATED to use gemini-2.0-flash model
+    const geminiApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
 
     // Make the request to the Gemini API
     const geminiResponse = await fetch(geminiApiUrl, {
