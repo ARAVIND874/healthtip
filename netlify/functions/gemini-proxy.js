@@ -32,22 +32,35 @@ exports.handler = async (event, context) => {
     const requestBody = JSON.parse(event.body);
     const userPrompt = requestBody.prompt;
     const currentLanguage = requestBody.language || 'en'; // Get language from client
+    const imageData = requestBody.imageData; // Assuming imageData (base64) might be sent for vision models
 
-    if (!userPrompt) {
+    if (!userPrompt && !imageData) { // Prompt or image data is required for vision models
       return {
         statusCode: 400, // Bad Request
-        body: JSON.stringify({ error: 'Prompt is missing in the request body.' })
+        body: JSON.stringify({ error: 'Prompt or image data is missing in the request body.' })
       };
     }
 
     // Construct the payload for the Gemini API
+    let contents = [{ role: "user", parts: [{ text: userPrompt }] }];
+
+    if (imageData) {
+      // If image data is provided, add it to the parts
+      contents[0].parts.push({
+        inlineData: {
+          mimeType: "image/png", // Assuming PNG, adjust if other types are expected
+          data: imageData
+        }
+      });
+    }
+
     const payload = {
-      contents: [{ role: "user", parts: [{ text: userPrompt }] }]
+      contents: contents
     };
 
     // Define the Gemini API URL
-    // UPDATED to use gemini-2.0-flash model
-    const geminiApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+    // UPDATED to use gemini-1.5-pro-vision model
+    const geminiApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-vision:generateContent?key=${GEMINI_API_KEY}`;
 
     // Make the request to the Gemini API
     const geminiResponse = await fetch(geminiApiUrl, {
