@@ -1,8 +1,20 @@
-[build]
-  publish = "public" # Specifies the directory to publish (your frontend)
-  functions = "netlify/functions" # Specifies the directory where your functions are located
+# netlify.toml
+# Netlify Build Configuration
 
+[build]
+  # Base directory for the build (where your index.html is located)
+  # If your index.html is in the root of your repo, leave this empty or set to "."
+  base = "." 
+  publish = "." # The directory to publish after build (relative to base)
+  functions = "netlify/functions" # Directory for Netlify Functions
+
+# Redirects (optional, but good practice for single-page apps)
+# This ensures all paths are served by index.html for client-side routing
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+
+# Plugins for Netlify Functions dependency installation
+[[plugins]]
+  package = "@netlify/plugin-functions-install-core"
