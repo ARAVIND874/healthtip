@@ -1,109 +1,59 @@
 // netlify/functions/gemini-proxy.js
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-// This Netlify Function acts as a secure proxy to the Gemini API.
-// It hides your Gemini API Key from the client-side.
-
-// The handler function is the entry point for the Netlify Function.
-// It receives an 'event' object (containing request details) and a 'context' object.
-exports.handler = async (event, context) => {
-  // Ensure the request method is POST, as we expect a prompt in the body.
-  if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405, // Method Not Allowed
-      body: JSON.stringify({ error: 'Method Not Allowed. Only POST requests are accepted.' })
-    };
-  }
-
-  try {
-    // Retrieve the Gemini API Key from Netlify Environment Variables.
-    // You MUST set this environment variable in your Netlify site settings.
-    // Go to Site settings > Build & deploy > Environment variables.
-    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-
-    if (!GEMINI_API_KEY) {
-      console.error("GEMINI_API_KEY environment variable is not set.");
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ error: 'Server configuration error: API key missing.' })
-      };
+exports.handler = async function(event, context) {
+    if (event.httpMethod !== "POST") {
+        return {
+            statusCode: 405,
+            body: JSON.stringify({ message: "Method Not Allowed" }),
+        };
     }
 
-    // Parse the request body to get the prompt from the client-side app.
-    const requestBody = JSON.parse(event.body);
-    const userPrompt = requestBody.prompt;
-    const currentLanguage = requestBody.language || 'en'; // Get language from client
-    const imageData = requestBody.imageData; // Assuming imageData (base64) might be sent for vision models
+    try {
+        const { prompt } = JSON.parse(event.body);
 
-    if (!userPrompt && !imageData) { // Prompt or image data is required for vision models
-      return {
-        statusCode: 400, // Bad Request
-        body: JSON.stringify({ error: 'Prompt or image data is missing in the request body.' })
-      };
-    }
+        // Access your API key as an environment variable.
+        // You MUST set this in your Netlify site settings under:
+        // Site settings > Build & deploy > Environment variables
+        const API_KEY = process.env.GEMINI_API_KEY;
 
-    // Construct the payload for the Gemini API
-    let contents = [{ role: "user", parts: [{ text: userPrompt }] }];
-
-    if (imageData) {
-      // If image data is provided, add it to the parts
-      contents[0].parts.push({
-        inlineData: {
-          mimeType: "image/png", // Assuming PNG, adjust if other types are expected
-          data: imageData
+        if (!API_KEY) {
+            return {
+                statusCode: 500,
+                body: JSON.stringify({ message: "Gemini API Key not configured in Netlify Environment Variables." }),
+            };
         }
-      });
+
+        const genAI = new GoogleGenerativeAI(API_KEY);
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+        const chat = model.startChat({
+            history: [], // Start with empty history for a single prompt
+            generationConfig: {
+                maxOutputTokens: 200, // Limit output to prevent excessively long responses
+            },
+        });
+
+        const result = await chat.sendMessage(prompt);
+        const response = await result.response;
+        const text = response.text();
+
+        return {
+            statusCode: 200,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                candidates: [{
+                    content: {
+                        parts: [{ text: text }]
+                    }
+                }]
+            }),
+        };
+    } catch (error) {
+        console.error("Error in Netlify Function:", error);
+        return {
+            statusCode: 500,
+            body: JSON.stringify({ message: error.message || "Internal Server Error" }),
+        };
     }
-
-    const payload = {
-      contents: contents
-    };
-
-    // Define the Gemini API URL
-    // UPDATED to use gemini-1.5-pro-vision model
-    const geminiApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-vision:generateContent?key=${GEMINI_API_KEY}`;
-
-    // Make the request to the Gemini API
-    const geminiResponse = await fetch(geminiApiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-
-    // Check if the Gemini API response was successful
-    if (!geminiResponse.ok) {
-      const errorText = await geminiResponse.text();
-      console.error(`Gemini API error: ${geminiResponse.status} - ${errorText}`);
-      return {
-        statusCode: geminiResponse.status,
-        body: JSON.stringify({ error: `Failed to get response from Gemini API: ${errorText}` })
-      };
-    }
-
-    const geminiResult = await geminiResponse.json();
-
-    // Extract the generated text from the Gemini response
-    if (geminiResult.candidates && geminiResult.candidates.length > 0 &&
-        geminiResult.candidates[0].content && geminiResult.candidates[0].content.parts &&
-        geminiResult.candidates[0].content.parts.length > 0) {
-      const generatedText = geminiResult.candidates[0].content.parts[0].text;
-      return {
-        statusCode: 200,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: generatedText })
-      };
-    } else {
-      console.warn("Gemini API response structure unexpected:", geminiResult);
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ error: 'Unexpected response from AI model.' })
-      };
-    }
-
-  } catch (error) {
-    console.error('Error in Netlify Function (gemini-proxy):', error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: 'Internal server error processing request.' })
-    };
-  }
 };
