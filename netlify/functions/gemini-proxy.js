@@ -26,9 +26,7 @@ exports.handler = async function(event, context) {
 
         const genAI = new GoogleGenerativeAI(API_KEY);
         // netlify/functions/gemini-proxy.js
-// ...
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
-// ...
+const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" }); 
 
         const chat = model.startChat({
             history: [], // Start with empty history for a single prompt
