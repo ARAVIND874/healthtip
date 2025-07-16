@@ -1,0 +1,23 @@
+{
+  "name": "arogya-nanban-app",
+  "version": "1.0.0",
+  "description": "Arogya Nanban - Your Health Companion web application with Netlify Functions for AI.",
+  "main": "index.js",
+  "scripts": {
+    "start": "netlify dev",
+    "build": "echo 'No build step for static HTML/JS'"
+  },
+  "keywords": [
+    "health",
+    "wellness",
+    "ai",
+    "netlify",
+    "firebase",
+    "tamil"
+  ],
+  "author": "Your Name/Organization",
+  "license": "MIT",
+  "dependencies": {
+    "@google/generative-ai": "^0.15.0"
+  }
+}
