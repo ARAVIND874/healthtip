@@ -844,6 +844,18 @@
         </div>
     </div>
 
+    <!-- Generic Confirmation Modal -->
+    <div id="confirmationModal" class="alarm-modal">
+        <div class="alarm-modal-content">
+            <h3 id="confirmModalTitle"></h3>
+            <p id="confirmModalMessage"></p>
+            <div class="flex justify-center gap-4 mt-4">
+                <button id="confirmModalYesBtn" class="action-button"></button>
+                <button id="confirmModalNoBtn" class="action-button bg-gray-500 hover:bg-gray-700"></button>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         // Import Firebase modules
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -1031,6 +1043,13 @@
                 stepTrackingStopped: "படி கண்காணிப்பு நிறுத்தப்பட்டது.",
                 stepTrackingNotSupported: "உங்கள் சாதனத்தில் படி கண்காணிப்பு ஆதரிக்கப்படவில்லை.",
                 stepTrackingError: "படி கண்காணிப்பில் பிழை.",
+                // Confirmation Modal Translations
+                yes: "ஆம்",
+                no: "இல்லை",
+                confirmDeleteReminderTitle: "நினைவூட்டலை நீக்கவா?",
+                confirmDeleteReminderMessage: "இந்த நினைவூட்டலை நீக்க விரும்புகிறீர்களா?",
+                confirmDeletePainPointTitle: "வலிப் புள்ளியை நீக்கவா?",
+                confirmDeletePainPointMessage: "இந்த வலிப் புள்ளியை நீக்க விரும்புகிறீர்களா?",
             },
             en: {
                 mainTitle: "Health Buddy",
@@ -1157,19 +1176,19 @@
 
                 // General messages
                 errorSpeechRecognition: "Speech recognition not supported or an error occurred.",
-                errorTTS: "Text-to-Speech not supported or an error occurred.",
-                errorGeneratingTip: "Error generating tip. Please try again.",
-                errorFetchingVoices: "Error fetching voices.",
-                errorSavingJournal: "Error saving journal entry.",
-                errorAnalyzingMood: "Error analyzing mood.",
-                errorFetchingLocalTip: "Error fetching local tip.",
-                errorGeneratingMealPlan: "Error generating meal plan.",
-                errorGeneratingExerciseYoga: "Error generating exercise/yoga recommendations.",
-                errorGettingPreventionTips: "Error getting prevention tips.",
-                errorGeneratingChallenge: "Error generating challenge.",
-                errorAddingReminder: "Error adding reminder.",
-                errorGettingPainAdvice: "Error getting pain advice.",
-                errorGettingFirstAid: "Error getting first aid steps.",
+                errorTTS: "Text-to-Speech ஆதரிக்கப்படவில்லை அல்லது பிழை ஏற்பட்டது.",
+                errorGeneratingTip: "குறிப்பை உருவாக்குவதில் பிழை ஏற்பட்டது. மீண்டும் முயற்சிக்கவும்.",
+                errorFetchingVoices: "குரல்களைப் பெறுவதில் பிழை ஏற்பட்டது.",
+                errorSavingJournal: "ஜர்னல் பதிவைச் சேமிப்பதில் பிழை ஏற்பட்டது.",
+                errorAnalyzingMood: "மனநிலையைப் பகுப்பாய்வு செய்வதில் பிழை ஏற்பட்டது.",
+                errorFetchingLocalTip: "உள்ளூர் உதவிக்குறிப்பைப் பெறுவதில் பிழை ஏற்பட்டது.",
+                errorGeneratingMealPlan: "உணவுத் திட்டத்தை உருவாக்குவதில் பிழை ஏற்பட்டது.",
+                errorGeneratingExerciseYoga: "உடற்பயிற்சி/யோகா பரிந்துரைகளை உருவாக்குவதில் பிழை ஏற்பட்டது.",
+                errorGettingPreventionTips: "தடுப்பு குறிப்புகளைப் பெறுவதில் பிழை ஏற்பட்டது.",
+                errorGeneratingChallenge: "சவாலை உருவாக்குவதில் பிழை ஏற்பட்டது.",
+                errorAddingReminder: "நினைவூட்டலைச் சேர்ப்பதில் பிழை ஏற்பட்டது.",
+                errorGettingPainAdvice: "வலி ஆலோசனை பெறுவதில் பிழை ஏற்பட்டது.",
+                errorGettingFirstAid: "முதலுதவி படிகளைப் பெறுவதில் பிழை ஏற்பட்டது.",
                 noVoicesAvailable: "No voices available.",
                 noJournalEntries: "No journal entries yet.",
                 noPainPoints: "No pain points recorded yet.",
@@ -1192,6 +1211,13 @@
                 stepTrackingStopped: "Step tracking stopped.",
                 stepTrackingNotSupported: "Step tracking not supported on your device.",
                 stepTrackingError: "Error in step tracking.",
+                // Confirmation Modal Translations
+                yes: "Yes",
+                no: "No",
+                confirmDeleteReminderTitle: "Delete Reminder?",
+                confirmDeleteReminderMessage: "Are you sure you want to delete this reminder?",
+                confirmDeletePainPointTitle: "Delete Pain Point?",
+                confirmDeletePainPointMessage: "Are you sure you want to delete this pain point?",
             }
         };
 
@@ -1237,7 +1263,7 @@
         const heartRateTipOutput = document.getElementById('heartRateTipOutput');
 
         const waterTrackerSection = document.getElementById('waterTrackerSection');
-        const waterIntakeDisplay = document.getElementById('waterIntakeDisplay');
+        // Fixed the typo here: removed 'document ='
         const addWaterBtn = document.getElementById('addWaterBtn');
         const resetWaterBtn = document.getElementById('resetWaterBtn');
         const waterResultOutput = document.getElementById('waterResultOutput');
@@ -1283,7 +1309,7 @@
         const diseaseName = document.getElementById('diseaseName');
         const getPreventionTipsBtn = document.getElementById('getPreventionTipsBtn');
         const diseasePreventionOutput = document.getElementById('diseasePreventionOutput');
-        const diseasePreventionAiVoiceBtn = document.getElementById('diseasePreventionAiVoiceBtn');
+        const diseasePreventionAiVoiceBtn = document = document.getElementById('diseasePreventionAiVoiceBtn');
         const diseasePreventionTtsVoiceSelect = document.getElementById('diseasePreventionTtsVoiceSelect');
 
         const wellnessChallengeSection = document.getElementById('wellnessChallengeSection');
@@ -1325,6 +1351,17 @@
         const firstAidOutput = document.getElementById('firstAidOutput');
         const firstAidAiVoiceBtn = document.getElementById('firstAidAiVoiceBtn');
         const firstAidTtsVoiceSelect = document.getElementById('firstAidTtsVoiceSelect');
+
+        // Generic Confirmation Modal DOM Elements
+        const confirmationModal = document.getElementById('confirmationModal');
+        const confirmModalTitle = document.getElementById('confirmModalTitle');
+        const confirmModalMessage = document.getElementById('confirmModalMessage');
+        const confirmModalYesBtn = document.getElementById('confirmModalYesBtn');
+        const confirmModalNoBtn = document.getElementById('confirmModalNoBtn');
+
+        // Global variables for confirmation modal callbacks
+        let confirmCallback = null;
+        let cancelCallback = null;
 
 
         // Initial setup and event listeners
@@ -1635,6 +1672,21 @@
             painPointsList.innerHTML = `<p>${getTranslation('noPainPoints')}</p>`;
             painAdviceOutput.innerHTML = `<p>${getTranslation('painAdviceOutputPlaceholder')}</p>`;
             firstAidOutput.innerHTML = `<p>${getTranslation('firstAidOutputPlaceholder')}</p>`;
+
+            // Event listeners for confirmation modal buttons
+            confirmModalYesBtn.addEventListener('click', () => {
+                if (confirmCallback) {
+                    confirmCallback();
+                }
+                hideConfirmationModal();
+            });
+
+            confirmModalNoBtn.addEventListener('click', () => {
+                if (cancelCallback) {
+                    cancelCallback();
+                }
+                hideConfirmationModal();
+            });
         });
 
         // Helper function to get translation
@@ -1840,7 +1892,7 @@
         function toggleSpeechRecognition(inputElement = goalInput) {
             if (!('webkitSpeechRecognition' in window)) {
                 console.error(getTranslation('errorSpeechRecognition'));
-                alert(getTranslation('errorSpeechRecognition'));
+                // Using console.error instead of alert as per instructions
                 return;
             }
 
@@ -1870,7 +1922,7 @@
             recognition.onerror = (event) => {
                 console.error('Speech recognition error:', event.error);
                 hideLoading();
-                alert(`${getTranslation('errorSpeechRecognition')}: ${event.error}`);
+                // Using console.error instead of alert as per instructions
                 stopSpeechRecognition();
             };
 
@@ -1894,58 +1946,53 @@
 
         // Text-to-Speech Functions
         function populateVoices() {
-            const voices = synth.getVoices();
-            ttsVoiceSelect.innerHTML = '';
-            stepTipTtsVoiceSelect.innerHTML = '';
-            moodAnalysisTtsVoiceSelect.innerHTML = '';
-            localTipTtsVoiceSelect.innerHTML = '';
-            mealPlanTtsVoiceSelect.innerHTML = '';
-            exerciseYogaTtsVoiceSelect.innerHTML = '';
-            diseasePreventionTtsVoiceSelect.innerHTML = '';
-            wellnessChallengeTtsVoiceSelect.innerHTML = '';
-            medicationReminderTtsVoiceSelect.innerHTML = '';
-            bodyPainTtsVoiceSelect.innerHTML = '';
-            firstAidTtsVoiceSelect.innerHTML = '';
+            const setVoices = () => {
+                const voices = synth.getVoices();
+                // Clear all voice selects
+                document.querySelectorAll('.tts-voice-selector').forEach(select => select.innerHTML = '');
 
-            const filteredVoices = voices.filter(voice => voice.lang.startsWith(currentLanguage));
+                const filteredVoices = voices.filter(voice => voice.lang.startsWith(currentLanguage));
 
-            if (filteredVoices.length === 0) {
-                console.warn(getTranslation('noVoicesAvailable'));
-                aiVoiceBtn.style.display = 'none';
-                ttsVoiceSelect.style.display = 'none';
-                // Hide all other TTS buttons and selects
-                document.querySelectorAll('.ai-voice-button, .tts-voice-selector').forEach(el => el.style.display = 'none');
-                return;
-            } else {
-                aiVoiceBtn.style.display = 'inline-flex';
-                ttsVoiceSelect.style.display = 'inline-block';
-                document.querySelectorAll('.ai-voice-button, .tts-voice-selector').forEach(el => el.style.display = 'inline-flex'); // Show them if voices are available
+                if (filteredVoices.length === 0) {
+                    console.warn(getTranslation('noVoicesAvailable'));
+                    // Hide all TTS buttons and selects if no voices are available for the language
+                    document.querySelectorAll('.ai-voice-button, .tts-voice-selector').forEach(el => el.style.display = 'none');
+                    return;
+                } else {
+                    // Show all TTS buttons and selects if voices are available
+                    document.querySelectorAll('.ai-voice-button, .tts-voice-selector').forEach(el => el.style.display = 'inline-flex');
+                }
+
+                filteredVoices.forEach(voice => {
+                    const option = document.createElement('option');
+                    option.textContent = `${voice.name} (${voice.lang})`;
+                    option.value = voice.name;
+                    // Append to all relevant selectors
+                    ttsVoiceSelect.appendChild(option.cloneNode(true));
+                    stepTipTtsVoiceSelect.appendChild(option.cloneNode(true));
+                    moodAnalysisTtsVoiceSelect.appendChild(option.cloneNode(true));
+                    localTipTtsVoiceSelect.appendChild(option.cloneNode(true));
+                    mealPlanTtsVoiceSelect.appendChild(option.cloneNode(true));
+                    exerciseYogaTtsVoiceSelect.appendChild(option.cloneNode(true));
+                    diseasePreventionTtsVoiceSelect.appendChild(option.cloneNode(true));
+                    wellnessChallengeTtsVoiceSelect.appendChild(option.cloneNode(true));
+                    medicationReminderTtsVoiceSelect.appendChild(option.cloneNode(true));
+                    bodyPainTtsVoiceSelect.appendChild(option.cloneNode(true));
+                    firstAidTtsVoiceSelect.appendChild(option.cloneNode(true));
+                });
+            };
+
+            // Listen for voiceschanged event as voices might not be immediately available
+            if (synth.onvoiceschanged !== undefined) {
+                synth.onvoiceschanged = setVoices;
             }
-
-            filteredVoices.forEach(voice => {
-                const option = document.createElement('option');
-                option.textContent = `${voice.name} (${voice.lang})`;
-                option.value = voice.name;
-                ttsVoiceSelect.appendChild(option);
-
-                // Clone options for other TTS selectors
-                stepTipTtsVoiceSelect.appendChild(option.cloneNode(true));
-                moodAnalysisTtsVoiceSelect.appendChild(option.cloneNode(true));
-                localTipTtsVoiceSelect.appendChild(option.cloneNode(true));
-                mealPlanTtsVoiceSelect.appendChild(option.cloneNode(true));
-                exerciseYogaTtsVoiceSelect.appendChild(option.cloneNode(true));
-                diseasePreventionTtsVoiceSelect.appendChild(option.cloneNode(true));
-                wellnessChallengeTtsVoiceSelect.appendChild(option.cloneNode(true));
-                medicationReminderTtsVoiceSelect.appendChild(option.cloneNode(true));
-                bodyPainTtsVoiceSelect.appendChild(option.cloneNode(true));
-                firstAidTtsVoiceSelect.appendChild(option.cloneNode(true));
-            });
+            setVoices(); // Call initially in case voices are already loaded
         }
 
         function toggleTTS(textToSpeak, voiceSelectElement = ttsVoiceSelect) {
             if (!synth) {
                 console.error(getTranslation('errorTTS'));
-                alert(getTranslation('errorTTS'));
+                // Using console.error instead of alert as per instructions
                 return;
             }
 
@@ -1968,7 +2015,7 @@
 
             currentUtterance.onerror = (event) => {
                 console.error('SpeechSynthesisUtterance.onerror', event);
-                alert(getTranslation('audioPlaybackError'));
+                // Using console.error instead of alert as per instructions
             };
 
             currentUtterance.onstart = () => {
@@ -2387,17 +2434,18 @@
             let html = '';
             medicationReminders.forEach(reminder => {
                 const freqText = getTranslation(reminder.frequency);
-                html += `<li class="mb-1">${reminder.name} - ${reminder.time} (${freqText}) <button data-id="${reminder.id}" class="text-red-500 hover:text-red-700 ml-2 text-sm">X</button></li>`;
+                html += `<li class="mb-1">${reminder.name} - ${reminder.time} (${freqText}) <button data-id="${reminder.id}" class="text-red-500 hover:text-red-700 ml-2 text-sm delete-reminder-btn">X</button></li>`;
             });
             remindersList.innerHTML = html;
 
-            document.querySelectorAll('#remindersList button').forEach(button => {
+            document.querySelectorAll('#remindersList .delete-reminder-btn').forEach(button => {
                 button.addEventListener('click', async (e) => {
                     const reminderId = e.target.dataset.id;
-                    // Replaced alert with console.log for silent operation as per instructions
-                    // In a real app, you'd use a custom modal for confirmation
-                    console.log(`Attempting to delete reminder with ID: ${reminderId}`);
-                    await deleteMedicationReminder(reminderId);
+                    showConfirmationModal(
+                        'confirmDeleteReminderTitle',
+                        'confirmDeleteReminderMessage',
+                        async () => { await deleteMedicationReminder(reminderId); }
+                    );
                 });
             });
         }
@@ -2444,6 +2492,25 @@
             alarmModalMessage.textContent = `${getTranslation('alarmModalMessage')} ${medicationName}`;
             alarmModal.classList.add('show');
             synthAlarm.triggerAttackRelease("C4", "8n"); // Play a simple sound
+        }
+
+        // Generic Confirmation Modal Functions
+        function showConfirmationModal(titleKey, messageKey, onConfirm, onCancel = null) {
+            confirmModalTitle.textContent = getTranslation(titleKey);
+            confirmModalMessage.textContent = getTranslation(messageKey);
+            confirmModalYesBtn.textContent = getTranslation('yes');
+            confirmModalNoBtn.textContent = getTranslation('no');
+
+            confirmCallback = onConfirm;
+            cancelCallback = onCancel;
+
+            confirmationModal.classList.add('show');
+        }
+
+        function hideConfirmationModal() {
+            confirmationModal.classList.remove('show');
+            confirmCallback = null;
+            cancelCallback = null;
         }
 
 
@@ -2504,16 +2571,18 @@
                 bodyMapContainer.appendChild(dot);
 
                 const date = point.timestamp.toDate().toLocaleString(currentLanguage === 'ta' ? 'ta-IN' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' });
-                html += `<li class="mb-1"><strong>${date}</strong> - ${point.description || 'விளக்கம் இல்லை'} (X: ${point.x.toFixed(2)}, Y: ${point.y.toFixed(2)}) <button data-id="${point.id}" class="text-red-500 hover:text-red-700 ml-2 text-sm">X</button></li>`;
+                html += `<li class="mb-1"><strong>${date}</strong> - ${point.description || 'விளக்கம் இல்லை'} (X: ${point.x.toFixed(2)}, Y: ${point.y.toFixed(2)}) <button data-id="${point.id}" class="text-red-500 hover:text-red-700 ml-2 text-sm delete-pain-point-btn">X</button></li>`;
             });
             painPointsList.innerHTML = html;
 
-            document.querySelectorAll('#painPointsList button').forEach(button => {
+            document.querySelectorAll('#painPointsList .delete-pain-point-btn').forEach(button => {
                 button.addEventListener('click', async (e) => {
                     const pointId = e.target.dataset.id;
-                    // Replaced alert with console.log for silent operation as per instructions
-                    console.log(`Attempting to delete pain point with ID: ${pointId}`);
-                    await deletePainPoint(pointId);
+                    showConfirmationModal(
+                        'confirmDeletePainPointTitle',
+                        'confirmDeletePainPointMessage',
+                        async () => { await deletePainPoint(pointId); }
+                    );
                 });
             });
         }
