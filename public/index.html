@@ -127,7 +127,7 @@
             exercisePrompt: 'உங்கள் உடற்பயிற்சி, வலி அல்லது பிரச்சனைக்கான யோசனைகளை உள்ளிடவும்.',
             painPromptPrefix: 'இந்த உடற்பகுதி வலிக்கு குறிப்புகள்:',
             painMapTipInstructions: 'வலி உள்ள பகுதியைத் தொட்டு, அதன் பற்றிய குறிப்புகளைப் பெறுங்கள்.',
-            genericPainTip: 'இந்த பகுதி வலிக்கு சில குறிப்புகள் கிடைக்க, பகுதியைத் தொடவும்.'
+            genericPainTip: 'Touch a body part to get tips for pain in that area.'
         },
         'en': {
             loginTitle: 'Login',
@@ -268,7 +268,13 @@ Please provide a response in ${currentLang === 'ta' ? 'Tamil' : 'English'}. Form
             const chatHistory = [];
             chatHistory.push({ role: "user", parts: [{ text: finalPrompt }] });
             const payload = { contents: chatHistory };
-            const apiKey = ""
+            
+            // ---------------------------------------------------------------------------------------------------
+            // IMPORTANT: You need to replace "YOUR_API_KEY_HERE" with your actual Gemini API key.
+            // Get your key from here: https://ai.google.dev/
+            // ---------------------------------------------------------------------------------------------------
+            const apiKey = "AIzaSyA5Kji5739tmhOPFJi0De2Pl_io2Jmo-V0";
+            
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
             const response = await fetch(apiUrl, {
                 method: 'POST',
@@ -609,7 +615,7 @@ Please provide a response in ${currentLang === 'ta' ? 'Tamil' : 'English'}. Form
                         <input type="text" id="aiQuery" placeholder="${getTranslation('search')}" class="flex-grow p-3 border-2 border-gray-200 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-green-400 text-gray-800" />
                         <button class="mic-btn text-xl text-gray-600 hover:text-blue-500 transition-colors p-2" data-input-id="aiQuery">🎤</button>
                         <button id="aiSearchBtn" class="bg-green-500 text-white p-3 rounded-r-lg shadow-sm hover:bg-green-600 transition-colors">
-                            ${getTranslation('search')}
+                            ${getTranslation('submit')}
                         </button>
                     </div>
                     <div class="flex items-center space-x-2">
@@ -631,8 +637,7 @@ Please provide a response in ${currentLang === 'ta' ? 'Tamil' : 'English'}. Form
         document.getElementById('aiSearchBtn').addEventListener('click', () => {
             const query = document.getElementById('aiQuery').value;
             if (query) {
-                const prompt = `Provide health and wellness tips related to "${query}" for ${tipType}. Respond in ${currentLang === 'ta' ? 'Tamil' : 'English'}.`;
-                getAiTipFromPrompt(prompt, tipType, 'aiTip');
+                getAiTipFromPrompt(query, tipType, 'aiTip');
             }
         });
     };
@@ -642,47 +647,58 @@ Please provide a response in ${currentLang === 'ta' ? 'Tamil' : 'English'}. Form
             <div class="min-h-screen flex flex-col items-center p-8 bg-gray-100 text-gray-800">
                 <div class="max-w-2xl w-full bg-white rounded-2xl shadow-2xl p-8 relative">
                     <h1 class="text-4xl font-extrabold mb-4 text-center">${getTranslation('bodyPainMap')}</h1>
-                    <p class="text-center mb-4">${getTranslation('painMapPrompt')}</p>
+                    <p class="text-lg text-center mb-6">${getTranslation('painMapPrompt')}</p>
+                    
                     <div class="pain-map-container">
-                        <svg class="pain-map-svg" viewBox="0 0 200 400" xmlns="http://www.w3.org/2000/svg">
-                            <!-- SVG paths representing different body parts. Use data-part-name to identify them. -->
-                            <!-- Head -->
-                            <path class="body-part" data-part-name="Head" d="M100,20 C120,0 150,10 160,40 C170,70 140,100 100,100 C60,100 30,70 40,40 C50,10 80,0 100,20 Z" fill="#6b7280" stroke="#fff" stroke-width="1"></path>
-                            <!-- Neck -->
-                            <path class="body-part" data-part-name="Neck" d="M90,100 Q95,110 100,110 Q105,110 110,100 V120 H90 V100 Z" fill="#6b7280" stroke="#fff" stroke-width="1"></path>
-                            <!-- Torso -->
-                            <path class="body-part" data-part-name="Torso" d="M80,120 H120 V250 H80 V120 Z" fill="#6b7280" stroke="#fff" stroke-width="1"></path>
-                            <!-- Left Arm -->
-                            <path class="body-part" data-part-name="Left Arm" d="M80,120 Q60,150 60,200 V280 H50 V200 Q50,150 70,120 Z" fill="#6b7280" stroke="#fff" stroke-width="1"></path>
-                            <!-- Right Arm -->
-                            <path class="body-part" data-part-name="Right Arm" d="M120,120 Q140,150 140,200 V280 H150 V200 Q150,150 130,120 Z" fill="#6b7280" stroke="#fff" stroke-width="1"></path>
-                            <!-- Left Leg -->
-                            <path class="body-part" data-part-name="Left Leg" d="M80,250 H90 V350 Q90,380 70,390 Q50,380 50,350 V250 Z" fill="#6b7280" stroke="#fff" stroke-width="1"></path>
-                            <!-- Right Leg -->
-                            <path class="body-part" data-part-name="Right Leg" d="M120,250 H110 V350 Q110,380 130,390 Q150,380 150,350 V250 Z" fill="#6b7280" stroke="#fff" stroke-width="1"></path>
-                            <!-- Add more paths for hands, feet, etc. as needed -->
+                        <svg class="pain-map-svg w-full h-auto" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 600" fill="#6b7280">
+                            <!-- Male body outline - front view -->
+                            <g class="body-parts-group" data-title="Body">
+                                <path id="head" class="body-part" d="M200 50c-27.6 0-50 22.4-50 50v50h100v-50c0-27.6-22.4-50-50-50z"/>
+                                <path id="neck" class="body-part" d="M190 150h20v30h-20z"/>
+                                <path id="shoulder_right" class="body-part" d="M210 160h60c11 0 20 9 20 20v40c0 11-9 20-20 20h-60z"/>
+                                <path id="shoulder_left" class="body-part" d="M190 160h-60c-11 0-20 9-20 20v40c0 11 9 20 20 20h60z"/>
+                                <path id="chest" class="body-part" d="M180 180h40v60h-40z"/>
+                                <path id="stomach" class="body-part" d="M170 240h60v60h-60z"/>
+                                <path id="arm_right" class="body-part" d="M270 180c11 0 20 9 20 20v100c0 11-9 20-20 20h-10c-11 0-20-9-20-20v-100c0-11 9-20 20-20z"/>
+                                <path id="arm_left" class="body-part" d="M130 180c-11 0-20 9-20 20v100c0 11 9 20 20 20h10c11 0 20-9 20-20v-100c0-11-9-20-20-20z"/>
+                                <path id="hip" class="body-part" d="M160 300h80v60h-80z"/>
+                                <path id="thigh_right" class="body-part" d="M210 360h30c11 0 20 9 20 20v100c0 11-9 20-20 20h-30c-11 0-20-9-20-20v-100c0-11 9-20 20-20z"/>
+                                <path id="thigh_left" class="body-part" d="M160 360h-30c-11 0-20 9-20 20v100c0 11 9 20 20 20h30c11 0 20-9 20-20v-100c0-11-9-20-20-20z"/>
+                                <path id="calf_right" class="body-part" d="M215 480h20c11 0 20 9 20 20v80c0 11-9 20-20 20h-20c-11 0-20-9-20-20v-80c0-11 9-20 20-20z"/>
+                                <path id="calf_left" class="body-part" d="M165 480h-20c-11 0-20 9-20 20v80c0 11 9 20 20 20h20c11 0 20-9 20-20v-80c0-11-9-20-20-20z"/>
+                                <path id="foot_right" class="body-part" d="M220 580h30v20h-30z"/>
+                                <path id="foot_left" class="body-part" d="M150 580h30v20h-30z"/>
+                            </g>
                         </svg>
                     </div>
-                    <div class="mt-8">
-                        <h2 class="text-2xl font-bold mb-4 text-center">${getTranslation('aiTipTitle')}</h2>
-                        <div class="p-4 bg-gray-100 rounded-lg whitespace-pre-wrap min-h-[100px] text-gray-800" id="aiTip">
-                            ${getTranslation('painMapTipInstructions')}
+
+                    <div class="mt-8 text-center">
+                        <p class="text-sm text-gray-500 mb-2">${getTranslation('painMapTipInstructions')}</p>
+                        <div id="painTip" class="p-4 bg-gray-100 rounded-lg whitespace-pre-wrap min-h-[100px] text-gray-800">
+                            ${getTranslation('genericPainTip')}
                         </div>
+                        <button id="speakPainTipBtn" class="text-xl text-gray-600 hover:text-green-500 transition-colors p-2 mt-2">🔊</button>
                     </div>
                 </div>
             </div>
         `;
-        document.querySelectorAll('.body-part').forEach(path => {
-            path.addEventListener('click', (e) => {
-                const partName = e.target.dataset.partName;
-                const isPainful = e.target.classList.toggle('pain');
-                if (isPainful) {
-                    const prompt = `Give a few simple tips for pain in the ${partName} area of the body. Respond in ${currentLang === 'ta' ? 'Tamil' : 'English'}.`;
-                    getAiTipFromPrompt(prompt, 'pain-map', 'aiTip');
+        document.querySelectorAll('.pain-map-svg .body-part').forEach(path => {
+            path.addEventListener('click', (event) => {
+                const partId = event.target.id;
+                const partTitle = translations[currentLang][partId] || partId;
+
+                const hasPain = event.target.classList.toggle('pain');
+                if (hasPain) {
+                    const prompt = `தமிழில், ${partTitle} பகுதியில் உள்ள வலிக்கு என்னென்ன குறிப்புகள் வழங்கலாம்? காரணங்கள், சிகிச்சை முறைகள், மற்றும் தடுப்பு நடவடிக்கைகள் பற்றி விளக்கவும்.`;
+                    getAiTipFromPrompt(prompt, 'pain-tip', 'painTip');
                 } else {
-                    document.getElementById('aiTip').textContent = getTranslation('painMapTipInstructions');
+                    document.getElementById('painTip').textContent = getTranslation('genericPainTip');
                 }
             });
+        });
+        document.querySelector('#speakPainTipBtn').addEventListener('click', () => {
+            const text = document.querySelector('#painTip').textContent;
+            speakText(text);
         });
     };
 
@@ -693,44 +709,73 @@ Please provide a response in ${currentLang === 'ta' ? 'Tamil' : 'English'}. Form
                     <h1 class="text-4xl font-extrabold mb-4 text-center">${getTranslation('firstAid')}</h1>
                     <p class="text-lg text-center mb-6">${getTranslation('firstAidPrompt')}</p>
                     <div class="flex flex-col space-y-4">
-                        <h2 class="text-2xl font-bold">${getTranslation('emergencyContacts')}</h2>
-                        <ul id="contactsList" class="space-y-2">
-                            ${emergencyContacts.map(contact => `<li class="p-3 bg-gray-100 rounded-lg flex justify-between items-center"><span>${contact.name}: ${contact.number}</span><button class="remove-contact-btn text-red-500 font-bold" data-number="${contact.number}">✕</button></li>`).join('')}
-                            ${emergencyContacts.length === 0 ? `<li class="text-gray-500">${getTranslation('noContacts')}</li>` : ''}
-                        </ul>
-                        <div class="flex items-center space-x-2">
-                            <input type="text" id="contactName" placeholder="${getTranslation('name')}" class="p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 w-1/2">
-                            <input type="text" id="contactNumber" placeholder="${getTranslation('number')}" class="p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 w-1/2">
+                        <div class="flex items-center w-full">
+                            <input type="text" id="aiQuery" placeholder="${getTranslation('search')}" class="flex-grow p-3 border-2 border-gray-200 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-green-400 text-gray-800" />
+                            <button class="mic-btn text-xl text-gray-600 hover:text-blue-500 transition-colors p-2" data-input-id="aiQuery">🎤</button>
+                            <button id="aiSearchBtn" class="bg-green-500 text-white p-3 rounded-r-lg shadow-sm hover:bg-green-600 transition-colors">
+                                ${getTranslation('submit')}
+                            </button>
                         </div>
-                        <button id="addContactBtn" class="bg-blue-500 text-white font-bold p-3 rounded-lg shadow-md hover:bg-blue-600 transition-colors">${getTranslation('addContact')}</button>
+                        <div id="aiTip" class="p-4 bg-gray-100 rounded-lg whitespace-pre-wrap min-h-[100px] text-gray-800">
+                            ${getTranslation('yourTipHere')}
+                        </div>
+                        <button id="speakTipBtn" class="text-xl text-gray-600 hover:text-green-500 transition-colors p-2 self-start">🔊</button>
+                    </div>
+                    <div class="mt-8">
+                        <h2 class="text-2xl font-bold mb-4">${getTranslation('emergencyContacts')}</h2>
+                        <ul id="contactsList" class="space-y-2 scrollable-content">
+                            ${emergencyContacts.map(contact => `<li class="p-3 bg-gray-100 rounded-lg flex items-center justify-between shadow-inner"><span>${contact.name}: ${contact.number}</span> <button class="text-red-500 delete-contact" data-number="${contact.number}">❌</button></li>`).join('')}
+                            ${emergencyContacts.length === 0 ? `<li class="p-3 text-gray-500">${getTranslation('noContacts')}</li>` : ''}
+                        </ul>
+                        <div class="flex items-center space-x-2 mt-4">
+                            <input type="text" id="contactName" placeholder="பெயர்" class="p-2 border-2 border-gray-200 rounded-lg w-1/2">
+                            <input type="text" id="contactNumber" placeholder="எண்" class="p-2 border-2 border-gray-200 rounded-lg w-1/2">
+                            <button id="addContactBtn" class="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600">${getTranslation('addContact')}</button>
+                        </div>
                     </div>
                 </div>
             </div>
         `;
+        document.querySelector('#speakTipBtn').addEventListener('click', () => {
+            const text = document.querySelector('#aiTip').textContent;
+            speakText(text);
+        });
+        document.querySelectorAll('.mic-btn').forEach(btn => {
+            btn.addEventListener('click', () => startSpeechRecognition(btn.dataset.inputId));
+        });
+        document.getElementById('aiSearchBtn').addEventListener('click', () => {
+            const query = document.getElementById('aiQuery').value;
+            if (query) {
+                const prompt = `தமிழில், அவசர காலங்களில் ${query} நிலைக்கு உதவ முதல் உதவி தகவல்களை வழங்கவும்.`;
+                getAiTipFromPrompt(prompt, 'first-aid', 'aiTip');
+            }
+        });
         document.getElementById('addContactBtn').addEventListener('click', () => {
-            const name = document.getElementById('contactName').value.trim();
-            const number = document.getElementById('contactNumber').value.trim();
+            const name = document.getElementById('contactName').value;
+            const number = document.getElementById('contactNumber').value;
             if (name && number) {
                 emergencyContacts.push({ name, number });
                 document.getElementById('contactName').value = '';
                 document.getElementById('contactNumber').value = '';
-                render(); // Re-render to show updated list
+                render();
             }
         });
-        document.querySelectorAll('.remove-contact-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const numberToRemove = e.target.dataset.number;
-                const index = emergencyContacts.findIndex(contact => contact.number === numberToRemove);
+        document.querySelectorAll('.delete-contact').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const contactNumber = btn.dataset.number;
+                const index = emergencyContacts.findIndex(c => c.number === contactNumber);
                 if (index !== -1) {
                     emergencyContacts.splice(index, 1);
-                    render(); // Re-render to show updated list
+                    render();
                 }
             });
         });
     };
 
     // Initial render
-    render();
+    window.onload = function() {
+        render();
+    };
 </script>
 
 </body>
