@@ -246,7 +246,7 @@
     const messageBox = document.getElementById('message-box');
     const messageText = document.getElementById('message-text');
 
-    // Speech Recognition and Synthesis APIs
+    // Check for Web Speech API browser support
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const synth = window.speechSynthesis;
 
@@ -267,12 +267,14 @@
         messageBox.classList.remove('flex');
     }
 
+    // Function to handle speech recognition (mic input)
     const toggleSpeechRecognition = (inputElementId) => {
         const micButton = document.querySelector(`[data-input-id="${inputElementId}"]`);
         const aiTipElement = document.getElementById('aiTip');
 
+        // Check for browser support
         if (!SpeechRecognition) {
-            showMessageBox('உங்கள் உலாவி பேச்சு அங்கீகாரத்தை ஆதரிக்கவில்லை.');
+            showMessageBox('உங்கள் உலாவி பேச்சு அங்கீகாரத்தை ஆதரிக்கவில்லை. (Your browser does not support Speech Recognition).');
             return;
         }
 
@@ -281,7 +283,9 @@
             recognition.stop();
             isListening = false;
             micButton.textContent = '🎤';
-            aiTipElement.textContent = getTranslation('micStopped');
+            if (aiTipElement) {
+                aiTipElement.textContent = getTranslation('micStopped');
+            }
         } else {
             // Start listening
             recognition = new SpeechRecognition();
@@ -294,7 +298,9 @@
             recognition.onstart = () => {
                 isListening = true;
                 micButton.textContent = '🛑';
-                aiTipElement.textContent = getTranslation('micListening');
+                if (aiTipElement) {
+                    aiTipElement.textContent = getTranslation('micListening');
+                }
             };
 
             recognition.onresult = (event) => {
@@ -302,31 +308,38 @@
                 if (input) {
                     input.value = speechResult;
                 }
-                aiTipElement.textContent = '';
+                if (aiTipElement) {
+                    aiTipElement.textContent = '';
+                }
             };
 
             recognition.onerror = (event) => {
                 console.error('Speech recognition error', event.error);
-                showMessageBox(`பேச்சு அங்கீகாரம் பிழை: ${event.error}`);
+                showMessageBox(`பேச்சு அங்கீகாரம் பிழை: ${event.error}. (Speech recognition error: ${event.error})`);
             };
             
             recognition.onend = () => {
                 isListening = false;
                 micButton.textContent = '🎤';
+                // Reset the AI tip message only if a result was not received
+                if (aiTipElement && aiTipElement.textContent === getTranslation('micListening')) {
+                    aiTipElement.textContent = '';
+                }
             };
 
             recognition.start();
         }
     };
 
-    const toggleSpeak = (text) => {
-        const speakButton = document.getElementById('speakTipBtn');
+    // Function to handle speech synthesis (speaker output)
+    const toggleSpeak = (text, btnId) => {
+        const speakButton = document.getElementById(btnId);
 
         if (isSpeaking) {
             // Stop speaking
             synth.cancel();
             isSpeaking = false;
-            speakButton.textContent = '🔊';
+            if (speakButton) speakButton.textContent = '🔊';
         } else {
             // Start speaking
             if (!text || text.trim() === getTranslation('yourTipHere')) {
@@ -339,12 +352,12 @@
             
             utterance.onstart = () => {
                 isSpeaking = true;
-                speakButton.textContent = '⏹️';
+                if (speakButton) speakButton.textContent = '⏹️';
             };
             
             utterance.onend = () => {
                 isSpeaking = false;
-                speakButton.textContent = '🔊';
+                if (speakButton) speakButton.textContent = '🔊';
             };
 
             synth.speak(utterance);
@@ -364,7 +377,9 @@ Please provide a response in ${currentLang === 'ta' ? 'Tamil' : 'English'}. Form
             chatHistory.push({ role: "user", parts: [{ text: finalPrompt }] });
             const payload = { contents: chatHistory };
             
-            const apiKey = "AIzaSyA5Kji5739tmhOPFJi0De2Pl_io2Jmo-V0"; // API key is provided by the canvas environment at runtime
+            // The API key is provided by the canvas environment at runtime.
+            // DO NOT put a hard-coded key here.
+            const apiKey = "AIzaSyA5Kji5739tmhOPFJi0De2Pl_io2Jmo-V0";
             
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
             const response = await fetch(apiUrl, {
@@ -386,13 +401,13 @@ Please provide a response in ${currentLang === 'ta' ? 'Tamil' : 'English'}. Form
                 result.candidates[0].content.parts.length > 0) {
                 tipText = result.candidates[0].content.parts[0].text;
             } else {
-                tipText = `Failed to get a tip. Please try again.`;
+                tipText = getTranslation('noRecipe');
             }
 
             outputElement.textContent = tipText;
         } catch (error) {
             console.error('Error generating AI tip:', error);
-            outputElement.textContent = `Failed to generate a tip: ${error.message}`;
+            outputElement.textContent = `உதவிக்குறிப்பை உருவாக்க முடியவில்லை: ${error.message}`;
         }
     };
 
@@ -527,7 +542,7 @@ Please provide a response in ${currentLang === 'ta' ? 'Tamil' : 'English'}. Form
                 <h1 class="text-4xl font-extrabold mb-8 text-center text-white drop-shadow-lg">${getTranslation('allFeaturesTitle')}</h1>
                 <div class="grid grid-cols-2 md:grid-cols-3 gap-6 w-full max-w-5xl">
                     ${renderFeatureCardHtml('stepTracker', '🚶', getTranslation('stepTracker'))}
-                    ${renderFeatureCardHtml('generalTips', '🧠', getTranslation('generalTips'))}
+                    ${renderFeatureCardHtml('generalTips', '�', getTranslation('generalTips'))}
                     ${renderFeatureCardHtml('localTips', '🌱', getTranslation('localTips'))}
                     ${renderFeatureCardHtml('beautyTips', '✨', getTranslation('beautyTips'))}
                     ${renderFeatureCardHtml('symptomFinder', '🩺', getTranslation('symptomFinder'))}
@@ -643,25 +658,24 @@ Please provide a response in ${currentLang === 'ta' ? 'Tamil' : 'English'}. Form
             </div>
         `;
         document.getElementById('speakAnalysisBtn').addEventListener('click', () => {
-            const text = document.getElementById('moodAnalysisResult').textContent;
-            toggleSpeak(text);
+            const textToSpeak = document.getElementById('moodAnalysisResult').textContent;
+            toggleSpeak(textToSpeak, 'speakAnalysisBtn');
         });
         document.getElementById('moodMicBtn').addEventListener('click', () => toggleSpeechRecognition('moodEntry'));
-        document.getElementById('saveEntryBtn').addEventListener('click', () => {
+        document.getElementById('saveEntryBtn').addEventListener('click', async () => {
             const mood = document.getElementById('moodSelect').value;
-            const entryText = document.getElementById('moodEntry').value.trim();
-            if (mood && entryText) {
-                const timestamp = new Date().toLocaleString(currentLang === 'ta' ? 'ta-IN' : 'en-US');
-                moodEntries.push(`${timestamp} - ${getTranslation(`mood${mood}`)}: ${entryText}`);
-                document.getElementById('moodEntry').value = '';
-                render(); // Re-render to show new entry
+            const entry = document.getElementById('moodEntry').value;
+            if (mood && entry) {
+                const combinedEntry = `தேதி: ${new Date().toLocaleDateString(currentLang === 'ta' ? 'ta-IN' : 'en-US')}, மனநிலை: ${getTranslation(`mood${mood}`)}, குறிப்பு: ${entry}`;
+                moodEntries.push(combinedEntry);
+                renderMoodJournalPage();
+            } else {
+                showMessageBox('தயவுசெய்து உங்கள் மனநிலையையும் குறிப்பையும் உள்ளிடவும்.');
             }
         });
         document.getElementById('analyzeMoodBtn').addEventListener('click', () => {
-            const analysisContainer = document.getElementById('moodAnalysisResult');
-            analysisContainer.textContent = getTranslation('loadingMessage');
-            const prompt = `தமிழில், இந்த நாட்குறிப்பு பதிவுகளின் அடிப்படையில் மனநிலை மற்றும் உணர்ச்சி பகுப்பாய்வு செய்யவும்: ${moodEntries.join(', ')}. இது ஒரு பொதுவான பகுப்பாய்வு என்பதை நினைவில் கொள்ளவும்.`;
-            getAiTipFromPrompt(prompt, 'moodAnalysisResult');
+            const moodPrompt = `இந்த மனநிலை மற்றும் நன்றியுணர்வு நாட்குறிப்பு பதிவுகளை பகுப்பாய்வு செய்து ஒரு சுருக்கத்தை வழங்கவும்: ${JSON.stringify(moodEntries)}. தமிழில் பதிலளிக்கவும்.`;
+            getAiTipFromPrompt(moodPrompt, 'moodAnalysisResult');
         });
     };
 
@@ -670,32 +684,38 @@ Please provide a response in ${currentLang === 'ta' ? 'Tamil' : 'English'}. Form
             <div class="min-h-screen flex flex-col items-center p-8 bg-gray-100 text-gray-800">
                 <div class="max-w-2xl w-full bg-white rounded-2xl shadow-2xl p-8 relative">
                     <h1 class="text-4xl font-extrabold mb-4 text-center"><span class="mr-2">🍲</span>${getTranslation('foodRecipes')}</h1>
+                    <p class="text-center mb-4">${getTranslation('inputPlaceholderRecipes')}</p>
                     <div class="flex flex-col space-y-4">
                         <div class="flex items-center space-x-2">
                             <input type="text" id="recipeInput" placeholder="${getTranslation('inputPlaceholderRecipes')}" class="flex-grow p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400">
                             <button id="recipeMicBtn" class="text-xl text-gray-600 hover:text-blue-500 transition-colors p-2" data-input-id="recipeInput">🎤</button>
                         </div>
-                        <div class="flex space-x-2">
-                            <button id="getRecipeBtn" class="flex-grow bg-blue-500 text-white font-bold p-3 rounded-lg shadow-md hover:bg-blue-600 transition-colors">${getTranslation('getTip')}</button>
-                            <button id="speakRecipeBtn" class="bg-gray-400 text-white font-bold p-3 rounded-lg shadow-md hover:bg-gray-500 transition-colors">🔊</button>
-                        </div>
+                        <button id="getRecipeBtn" class="bg-green-500 text-white font-bold p-3 rounded-lg shadow-md hover:bg-green-600 transition-colors">${getTranslation('getTip')}</button>
                     </div>
                     <div class="mt-8">
-                        <h2 class="text-2xl font-bold mb-4">${getTranslation('aiTipTitle')}</h2>
-                        <div id="aiTip" class="p-4 bg-gray-100 rounded-lg whitespace-pre-wrap text-gray-800">${getTranslation('yourTipHere')}</div>
+                        <div id="aiTip" class="bg-gray-100 p-6 rounded-lg whitespace-pre-wrap leading-relaxed text-gray-800">
+                            ${getTranslation('yourTipHere')}
+                        </div>
+                        <button id="speakTipBtn" class="mt-4 bg-blue-500 text-white font-bold py-2 px-6 rounded-full shadow-lg hover:bg-blue-600 transition-colors">
+                            🔊 ${getTranslation('speakTip')}
+                        </button>
                     </div>
                 </div>
             </div>
         `;
         document.getElementById('getRecipeBtn').addEventListener('click', () => {
-            const prompt = document.getElementById('recipeInput').value;
-            getAiTipFromPrompt(`செய்முறை: ${prompt}`, 'aiTip');
-        });
-        document.getElementById('speakRecipeBtn').addEventListener('click', () => {
-            const text = document.getElementById('aiTip').textContent;
-            toggleSpeak(text);
+            const recipeInput = document.getElementById('recipeInput').value;
+            if (recipeInput) {
+                getAiTipFromPrompt(`Give me a detailed recipe for ${recipeInput}.`, 'aiTip');
+            } else {
+                showMessageBox('செய்முறைக்கு ஒரு பெயர் அல்லது மூலப்பொருளை உள்ளிடவும்.');
+            }
         });
         document.getElementById('recipeMicBtn').addEventListener('click', () => toggleSpeechRecognition('recipeInput'));
+        document.getElementById('speakTipBtn').addEventListener('click', () => {
+            const textToSpeak = document.getElementById('aiTip').textContent;
+            toggleSpeak(textToSpeak, 'speakTipBtn');
+        });
     };
 
     const renderBodyPainMapPage = () => {
@@ -703,80 +723,64 @@ Please provide a response in ${currentLang === 'ta' ? 'Tamil' : 'English'}. Form
             <div class="min-h-screen flex flex-col items-center p-8 bg-gray-100 text-gray-800">
                 <div class="max-w-2xl w-full bg-white rounded-2xl shadow-2xl p-8 relative">
                     <h1 class="text-4xl font-extrabold mb-4 text-center"><span class="mr-2">🗺️</span>${getTranslation('bodyPainMap')}</h1>
-                    <p class="text-center mb-4 text-gray-600">${getTranslation('painMapTipInstructions')}</p>
-                    <div class="pain-map-container" id="painMapContainer">
-                        <!-- SVG human body image with clickable parts -->
-                        <svg class="pain-map-svg" width="100%" height="auto" viewBox="0 0 300 600" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <g class="body-part" id="head">
-                                <path d="M150 50 C120 50, 120 100, 150 100 S180 100, 180 50 Z" stroke="#6b7280" stroke-width="2" fill="#d1d5db"/>
-                            </g>
-                            <g class="body-part" id="neck">
-                                <rect x="145" y="100" width="10" height="20" rx="5" fill="#d1d5db"/>
-                            </g>
-                            <g class="body-part" id="shoulder-r">
-                                <circle cx="120" cy="120" r="15" fill="#d1d5db"/>
-                            </g>
-                            <g class="body-part" id="shoulder-l">
-                                <circle cx="180" cy="120" r="15" fill="#d1d5db"/>
-                            </g>
-                            <g class="body-part" id="arm-r">
-                                <rect x="100" y="130" width="20" height="150" rx="10" fill="#d1d5db" transform="rotate(10, 100, 130)"/>
-                            </g>
-                            <g class="body-part" id="arm-l">
-                                <rect x="180" y="130" width="20" height="150" rx="10" fill="#d1d5db" transform="rotate(-10, 200, 130)"/>
-                            </g>
-                            <g class="body-part" id="chest">
-                                <path d="M125 120 C120 180, 180 180, 175 120 Z" fill="#d1d5db"/>
-                            </g>
-                            <g class="body-part" id="stomach">
-                                <path d="M125 180 C120 250, 180 250, 175 180 Z" fill="#d1d5db"/>
-                            </g>
-                            <g class="body-part" id="hand-r">
-                                <rect x="95" y="260" width="15" height="20" rx="5" fill="#d1d5db"/>
-                            </g>
-                            <g class="body-part" id="hand-l">
-                                <rect x="190" y="260" width="15" height="20" rx="5" fill="#d1d5db"/>
-                            </g>
-                            <g class="body-part" id="leg-r">
-                                <rect x="135" y="260" width="20" height="200" rx="10" fill="#d1d5db"/>
-                            </g>
-                            <g class="body-part" id="leg-l">
-                                <rect x="145" y="260" width="20" height="200" rx="10" fill="#d1d5db"/>
-                            </g>
-                            <g class="body-part" id="foot-r">
-                                <path d="M135 460 C125 470, 135 480, 145 470 Z" fill="#d1d5db"/>
-                            </g>
-                            <g class="body-part" id="foot-l">
-                                <path d="M155 460 C145 470, 155 480, 165 470 Z" fill="#d1d5db"/>
-                            </g>
-                            <g class="body-part" id="back">
-                                <path d="M125 120 C120 250, 180 250, 175 120 Z" fill="#d1d5db" transform="scale(1, -1) translate(0, -370)"/>
-                            </g>
-                            <g class="body-part" id="buttocks">
-                                <path d="M125 250 C120 300, 180 300, 175 250 Z" fill="#d1d5db" transform="scale(1, -1) translate(0, -500)"/>
-                            </g>
+                    <p class="text-center mb-4">${getTranslation('painMapTipInstructions')}</p>
+                    <div class="pain-map-container" id="pain-map-container">
+                        <svg class="pain-map-svg" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+                            <!-- Male body outline - basic paths -->
+                            <path class="body-part" id="head" d="M250,50 C280,50 300,80 300,100 C300,120 280,150 250,150 C220,150 200,120 200,100 C200,80 220,50 250,50 Z" />
+                            <path class="body-part" id="neck" d="M240,150 L260,150 L260,170 L240,170 Z" />
+                            <path class="body-part" id="shoulder-r" d="M260,170 L290,160 L320,170 L300,185 L260,170 Z" />
+                            <path class="body-part" id="shoulder-l" d="M240,170 L210,160 L180,170 L200,185 L240,170 Z" />
+                            <path class="body-part" id="chest" d="M240,170 C240,200 220,220 250,220 C280,220 260,200 260,170 Z" />
+                            <path class="body-part" id="stomach" d="M230,220 C230,240 220,260 250,260 C280,260 270,240 270,220 Z" />
+                            <path class="body-part" id="arm-r" d="M300,185 L320,250 L310,270 L290,200 Z" />
+                            <path class="body-part" id="arm-l" d="M200,185 L180,250 L190,270 L210,200 Z" />
+                            <path class="body-part" id="hand-r" d="M310,270 L320,290 C330,300 320,310 310,300 L300,280 Z" />
+                            <path class="body-part" id="hand-l" d="M190,270 L180,290 C170,300 180,310 190,300 L200,280 Z" />
+                            <path class="body-part" id="back" d="M230,220 L270,220 L270,320 L230,320 Z" />
+                            <path class="body-part" id="buttocks" d="M230,320 L270,320 L270,340 L230,340 Z" />
+                            <path class="body-part" id="leg-r" d="M270,340 L280,410 L270,440 L260,400 Z" />
+                            <path class="body-part" id="leg-l" d="M230,340 L220,410 L230,440 L240,400 Z" />
+                            <path class="body-part" id="foot-r" d="M270,440 L290,460 L280,470 L260,450 Z" />
+                            <path class="body-part" id="foot-l" d="M230,440 L210,460 L220,470 L240,450 Z" />
                         </svg>
                     </div>
                     <div class="mt-8">
-                        <h2 class="text-2xl font-bold mb-4">${getTranslation('aiTipTitle')}</h2>
-                        <div id="aiTip" class="p-4 bg-gray-100 rounded-lg whitespace-pre-wrap text-gray-800">
+                        <div id="aiTip" class="bg-gray-100 p-6 rounded-lg whitespace-pre-wrap leading-relaxed text-gray-800">
                             ${getTranslation('genericPainTip')}
                         </div>
+                        <button id="speakTipBtn" class="mt-4 bg-blue-500 text-white font-bold py-2 px-6 rounded-full shadow-lg hover:bg-blue-600 transition-colors">
+                            🔊 ${getTranslation('speakTip')}
+                        </button>
                     </div>
                 </div>
             </div>
         `;
-        document.querySelectorAll('.pain-map-svg .body-part').forEach(part => {
+        document.querySelectorAll('.body-part').forEach(part => {
             part.addEventListener('click', (e) => {
-                const partId = e.currentTarget.id;
+                const partId = e.target.id;
                 const partName = painMapPartNames[partId][currentLang];
                 
-                // Construct the prompt based on the clicked body part
-                const prompt = `${getTranslation('painPromptPrefix')} ${partName}.`;
+                // Toggle the 'pain' class on the SVG path
+                e.target.classList.toggle('pain');
 
-                // Call the AI tip generation function
-                getAiTipFromPrompt(prompt, 'aiTip');
+                if (e.target.classList.contains('pain')) {
+                    // Get tips for the selected body part
+                    getAiTipFromPrompt(`Provide pain relief tips for the ${partName}.`, 'aiTip');
+                } else {
+                    // Reset tip and speak button if deselected
+                    document.getElementById('aiTip').textContent = getTranslation('genericPainTip');
+                    if (isSpeaking) {
+                        synth.cancel();
+                        isSpeaking = false;
+                        document.getElementById('speakTipBtn').textContent = '🔊';
+                    }
+                }
             });
+        });
+        document.getElementById('speakTipBtn').addEventListener('click', () => {
+            const textToSpeak = document.getElementById('aiTip').textContent;
+            toggleSpeak(textToSpeak, 'speakTipBtn');
         });
     };
 
@@ -785,85 +789,112 @@ Please provide a response in ${currentLang === 'ta' ? 'Tamil' : 'English'}. Form
             <div class="min-h-screen flex flex-col items-center p-8 bg-gray-100 text-gray-800">
                 <div class="max-w-2xl w-full bg-white rounded-2xl shadow-2xl p-8 relative">
                     <h1 class="text-4xl font-extrabold mb-4 text-center"><span class="mr-2">⛑️</span>${getTranslation('firstAid')}</h1>
-                    <p class="text-center mb-4 text-gray-600">${getTranslation('firstAidPrompt')}</p>
-                    <!-- More content for First Aid would go here -->
-                    <div class="mt-8">
-                        <h2 class="text-2xl font-bold mb-4">${getTranslation('emergencyContacts')}</h2>
-                        <ul id="contactList" class="space-y-2">
-                            ${emergencyContacts.map(contact => `<li class="p-3 bg-gray-100 rounded-lg">${contact}</li>`).join('')}
-                            ${emergencyContacts.length === 0 ? `<li class="p-3 text-gray-500">${getTranslation('noContacts')}</li>` : ''}
-                        </ul>
-                        <button id="addContactBtn" class="mt-4 bg-green-500 text-white font-bold p-3 rounded-lg shadow-md hover:bg-green-600 transition-colors">${getTranslation('addContact')}</button>
-                    </div>
-                </div>
-            </div>
-        `;
-        document.getElementById('addContactBtn').addEventListener('click', () => {
-            // Placeholder functionality for adding a contact
-            showMessageBox(getTranslation('featureNotDeveloped'));
-        });
-    };
-
-    const renderAiTipsPage = (title, placeholderText, type) => {
-        appContainer.innerHTML = `
-            <div class="min-h-screen flex flex-col items-center p-8 bg-gray-100 text-gray-800">
-                <div class="max-w-2xl w-full bg-white rounded-2xl shadow-2xl p-8 relative">
-                    <h1 class="text-4xl font-extrabold mb-4 text-center">
-                        <span class="mr-2">
-                            ${type === 'generalTips' ? '🧠' : ''}
-                            ${type === 'localTips' ? '🌱' : ''}
-                            ${type === 'beautyTips' ? '✨' : ''}
-                            ${type === 'symptomFinder' ? '🩺' : ''}
-                            ${type === 'foodPlan' ? '🍎' : ''}
-                            ${type === 'exerciseYoga' ? '🧘' : ''}
-                        </span>
-                        ${title}
-                    </h1>
+                    <p class="text-center mb-4">${getTranslation('firstAidPrompt')}</p>
                     <div class="flex flex-col space-y-4">
                         <div class="flex items-center space-x-2">
-                            <input type="text" id="aiInput" placeholder="${placeholderText}" class="flex-grow p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400">
-                            <button id="micBtn" class="text-xl text-gray-600 hover:text-blue-500 transition-colors p-2" data-input-id="aiInput">🎤</button>
+                            <input type="text" id="firstAidInput" placeholder="காயங்கள், தீக்காயங்கள், எலும்பு முறிவு..." class="flex-grow p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400">
+                            <button id="firstAidMicBtn" class="text-xl text-gray-600 hover:text-blue-500 transition-colors p-2" data-input-id="firstAidInput">🎤</button>
                         </div>
-                        <div class="flex space-x-2">
-                            <button id="getTipBtn" class="flex-grow bg-blue-500 text-white font-bold p-3 rounded-lg shadow-md hover:bg-blue-600 transition-colors">${getTranslation('getTip')}</button>
-                            <button id="speakTipBtn" class="bg-gray-400 text-white font-bold p-3 rounded-lg shadow-md hover:bg-gray-500 transition-colors">🔊</button>
-                        </div>
+                        <button id="getFirstAidBtn" class="bg-green-500 text-white font-bold p-3 rounded-lg shadow-md hover:bg-green-600 transition-colors">${getTranslation('getTip')}</button>
                     </div>
                     <div class="mt-8">
                         <h2 class="text-2xl font-bold mb-4">${getTranslation('aiTipTitle')}</h2>
-                        <div id="aiTip" class="p-4 bg-gray-100 rounded-lg whitespace-pre-wrap text-gray-800">${getTranslation('yourTipHere')}</div>
+                        <div id="aiTip" class="bg-gray-100 p-6 rounded-lg whitespace-pre-wrap leading-relaxed text-gray-800">
+                            ${getTranslation('yourTipHere')}
+                        </div>
+                        <button id="speakTipBtn" class="mt-4 bg-blue-500 text-white font-bold py-2 px-6 rounded-full shadow-lg hover:bg-blue-600 transition-colors">
+                            🔊 ${getTranslation('speakTip')}
+                        </button>
+                    </div>
+                    <div class="mt-8">
+                        <h2 class="text-2xl font-bold mb-4">${getTranslation('emergencyContacts')}</h2>
+                        <ul id="contactsList" class="space-y-4">
+                            ${emergencyContacts.map(contact => `<li class="p-4 bg-gray-100 rounded-lg shadow-inner">${contact}</li>`).join('')}
+                            ${emergencyContacts.length === 0 ? `<li class="p-4 text-gray-500">${getTranslation('noContacts')}</li>` : ''}
+                        </ul>
+                        <div class="mt-4 flex flex-col space-y-2">
+                            <input type="text" id="newContact" placeholder="தொடர்பு பெயர் மற்றும் எண்..." class="p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400">
+                            <button id="addContactBtn" class="bg-gray-400 text-white font-bold p-3 rounded-lg shadow-md hover:bg-gray-500 transition-colors">${getTranslation('addContact')}</button>
+                        </div>
                     </div>
                 </div>
             </div>
         `;
-        document.getElementById('getTipBtn').addEventListener('click', () => {
-            const prompt = document.getElementById('aiInput').value;
-            getAiTipFromPrompt(prompt, 'aiTip');
+        document.getElementById('getFirstAidBtn').addEventListener('click', () => {
+            const symptomInput = document.getElementById('firstAidInput').value;
+            if (symptomInput) {
+                getAiTipFromPrompt(`Provide first aid tips for a person with the following condition: ${symptomInput}.`, 'aiTip');
+            } else {
+                showMessageBox('அவசர கால உதவிக்கு ஒரு நிலையை உள்ளிடவும்.');
+            }
         });
+        document.getElementById('firstAidMicBtn').addEventListener('click', () => toggleSpeechRecognition('firstAidInput'));
         document.getElementById('speakTipBtn').addEventListener('click', () => {
-            const text = document.getElementById('aiTip').textContent;
-            toggleSpeak(text);
+            const textToSpeak = document.getElementById('aiTip').textContent;
+            toggleSpeak(textToSpeak, 'speakTipBtn');
         });
-        document.getElementById('micBtn').addEventListener('click', () => toggleSpeechRecognition('aiInput'));
+        document.getElementById('addContactBtn').addEventListener('click', () => {
+            const newContact = document.getElementById('newContact').value;
+            if (newContact) {
+                emergencyContacts.push(newContact);
+                renderFirstAidPage();
+            } else {
+                showMessageBox('தொடர்பு பெயரை மற்றும் எண்ணை உள்ளிடவும்.');
+            }
+        });
     };
-
-    // Placeholder function for pages that are not yet implemented
-    const renderSimplePage = (title, icon, message) => {
+    
+    // Renders the AI Tips page for various categories
+    const renderAiTipsPage = (title, placeholderText, feature) => {
         appContainer.innerHTML = `
-            <div class="min-h-screen flex flex-col items-center justify-center p-8 bg-gray-100 text-gray-800">
-                <div class="max-w-2xl w-full text-center bg-white rounded-2xl shadow-2xl p-8">
-                    <div class="text-5xl mb-4">${icon}</div>
-                    <h1 class="text-4xl font-extrabold mb-4">${title}</h1>
-                    <p class="text-lg text-gray-600">${message}</p>
+            <div class="min-h-screen flex flex-col items-center p-8 bg-gray-100 text-gray-800">
+                <div class="max-w-2xl w-full bg-white rounded-2xl shadow-2xl p-8 relative">
+                    <h1 class="text-4xl font-extrabold mb-4 text-center">${title}</h1>
+                    <p class="text-center mb-4">${placeholderText}</p>
+                    <div class="flex flex-col space-y-4">
+                        <div class="flex items-center space-x-2">
+                            <input type="text" id="tipInput" placeholder="${placeholderText}" class="flex-grow p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400">
+                            <button id="tipMicBtn" class="text-xl text-gray-600 hover:text-blue-500 transition-colors p-2" data-input-id="tipInput">🎤</button>
+                        </div>
+                        <button id="getTipBtn" class="bg-green-500 text-white font-bold p-3 rounded-lg shadow-md hover:bg-green-600 transition-colors">${getTranslation('getTip')}</button>
+                    </div>
+                    <div class="mt-8">
+                        <h2 class="text-2xl font-bold mb-4">${getTranslation('aiTipTitle')}</h2>
+                        <div id="aiTip" class="bg-gray-100 p-6 rounded-lg whitespace-pre-wrap leading-relaxed text-gray-800">
+                            ${getTranslation('yourTipHere')}
+                        </div>
+                        <button id="speakTipBtn" class="mt-4 bg-blue-500 text-white font-bold py-2 px-6 rounded-full shadow-lg hover:bg-blue-600 transition-colors">
+                            🔊 ${getTranslation('speakTip')}
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
-    };
 
-    // Initial render on page load
-    window.onload = render;
+        document.getElementById('getTipBtn').addEventListener('click', () => {
+            const input = document.getElementById('tipInput').value;
+            let prompt = '';
+            switch(feature) {
+                case 'generalTips': prompt = `Provide general health tips for: ${input}`; break;
+                case 'localTips': prompt = `Provide local health tips for: ${input}`; break;
+                case 'beautyTips': prompt = `Provide home beauty tips for: ${input}`; break;
+                case 'symptomFinder': prompt = `Provide information about the following symptoms: ${input}`; break;
+                case 'foodPlan': prompt = `Provide a food plan for the following diet, health issue, or allergy: ${input}`; break;
+                case 'exerciseYoga': prompt = `Provide exercise or yoga tips for: ${input}`; break;
+                default: prompt = input;
+            }
+            getAiTipFromPrompt(prompt, 'aiTip');
+        });
+        document.getElementById('tipMicBtn').addEventListener('click', () => toggleSpeechRecognition('tipInput'));
+        document.getElementById('speakTipBtn').addEventListener('click', () => {
+            const textToSpeak = document.getElementById('aiTip').textContent;
+            toggleSpeak(textToSpeak, 'speakTipBtn');
+        });
+    };
+    
+    // Initial render
+    render();
+
 </script>
 </body>
 </html>
-
-
