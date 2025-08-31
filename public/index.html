@@ -42,6 +42,44 @@
         .pain-map-svg path.pain {
             fill: #ef4444; /* Red color for a selected painful area */
         }
+        /* Style for the tip box to take full width and handle long content */
+        #tipOutput, #recipeOutput, #journalOutput {
+            width: 100%;
+            padding: 1.5rem;
+            background-color: #f3f4f6;
+            border-radius: 1rem;
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+            min-height: 100px; /* Ensure it's visible even when empty */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: #4b5563;
+            overflow-y: auto; /* Enable scrolling for long text */
+        }
+        .output-box-container {
+            position: relative;
+            width: 100%;
+        }
+        .output-box-actions {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+        }
+        /* Custom styles for loading spinner and list formatting */
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #4f46e5;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body class="bg-gray-100 antialiased text-gray-800">
@@ -68,7 +106,7 @@
     // Language translations in Tamil and English
     const translations = {
         'ta': {
-            loginTitle : '🔒உள்நுழைக',
+            loginTitle: '🔒உள்நுழைக',
             usernamePlaceholder: 'பயனர் பெயர்',
             passwordPlaceholder: 'கடவுச்சொல்',
             loginButton: 'உள்நுழைய',
@@ -137,6 +175,11 @@
             micStopped: 'மைக்ரோஃபோன் நிறுத்திவிட்டது.',
             speakTip: 'குறிப்பைப் பேசவும்',
             stopSpeaking: 'பேசுவதை நிறுத்தவும்',
+            motionSensorNotSupported: 'உங்கள் சாதனம் மோஷன் சென்சாரை ஆதரிக்கவில்லை. (Your device does not support motion sensors).',
+            emergencyTip: 'அவசர உதவிக்குறிப்பு',
+            viewFront: 'முன்பக்க பார்வை',
+            viewBack: 'பின்திரும்பிய பார்வை',
+            getRecipe: 'செய்முறையைப் பெறுங்கள்',
         },
         'en': {
             loginTitle: '🔒Login',
@@ -208,37 +251,91 @@
             micStopped: 'Microphone stopped.',
             speakTip: 'Speak Tip',
             stopSpeaking: 'Stop Speaking',
+            motionSensorNotSupported: 'Your device does not support motion sensors.',
+            emergencyTip: 'Emergency Tip',
+            viewFront: 'Front View',
+            viewBack: 'Back View',
+            getRecipe: 'Get Recipe',
         }
     };
-
+    
+    // Updated features list with new order and new icons
+    const features = [
+        { id: 'stepTracker', icon: 'fa-walking', titleKey: 'stepTracker' },
+        { id: 'generalTips', icon: 'fa-lightbulb', titleKey: 'generalTips' },
+        { id: 'symptomFinder', icon: 'fa-stethoscope', titleKey: 'symptomFinder' },
+        { id: 'firstAid', icon: 'fa-hand-holding-medical', titleKey: 'firstAid' },
+        { id: 'localTips', icon: 'fa-seedling', titleKey: 'localTips' },
+        { id: 'foodPlan', icon: 'fa-apple-alt', titleKey: 'foodPlan' },
+        { id: 'foodRecipes', icon: 'fa-utensils', titleKey: 'foodRecipes' },
+        { id: 'beautyTips', icon: 'fa-spa', titleKey: 'beautyTips' },
+        { id: 'exerciseYoga', icon: 'fa-running', titleKey: 'exerciseYoga' },
+        { id: 'bodyPainMap', icon: 'fa-user-injured', titleKey: 'bodyPainMap' },
+        { id: 'moodJournal', icon: 'fa-grin-hearts', titleKey: 'moodJournal' },
+    ];
     // Mapping from SVG part IDs to human-readable names for AI prompt generation
     const painMapPartNames = {
-        'head': { ta: 'தலை', en: 'head' },
-        'neck': { ta: 'கழுத்து', en: 'neck' },
-        'shoulder-r': { ta: 'வலது தோள்பட்டை', en: 'right shoulder' },
-        'shoulder-l': { ta: 'இடது தோள்பட்டை', en: 'left shoulder' },
+        // Front View
+        'head-front': { ta: 'தலை', en: 'head' },
+        'neck-front': { ta: 'கழுத்து', en: 'neck' },
         'chest': { ta: 'மார்பு', en: 'chest' },
         'stomach': { ta: 'வயிறு', en: 'stomach' },
-        'arm-r': { ta: 'வலது கை', en: 'right arm' },
-        'arm-l': { ta: 'இடது கை', en: 'left arm' },
-        'hand-r': { ta: 'வலது கை', en: 'right hand' },
-        'hand-l': { ta: 'இடது கை', en: 'left hand' },
-        'leg-r': { ta: 'வலது கால்', en: 'right leg' },
-        'leg-l': { ta: 'இடது கால்', en: 'left leg' },
-        'foot-r': { ta: 'வலது பாதம்', en: 'right foot' },
-        'foot-l': { ta: 'இடது பாதம்', en: 'left foot' },
+        'shoulder-r-front': { ta: 'வலது தோள்பட்டை', en: 'right shoulder' },
+        'shoulder-l-front': { ta: 'இடது தோள்பட்டை', en: 'left shoulder' },
+        'arm-r-front': { ta: 'வலது கை', en: 'right arm' },
+        'arm-l-front': { ta: 'இடது கை', en: 'left arm' },
+        'forearm-r-front': { ta: 'வலது முன்கை', en: 'right forearm' },
+        'forearm-l-front': { ta: 'இடது முன்கை', en: 'left forearm' },
+        'hand-r-front': { ta: 'வலது கை', en: 'right hand' },
+        'hand-l-front': { ta: 'இடது கை', en: 'left hand' },
+        'waist-front': { ta: 'இடுப்பு', en: 'waist' },
+        'thigh-r-front': { ta: 'வலது தொடை', en: 'right thigh' },
+        'thigh-l-front': { ta: 'இடது தொடை', en: 'left thigh' },
+        'knee-r-front': { ta: 'வலது முழங்கால்', en: 'right knee' },
+        'knee-l-front': { ta: 'இடது முழங்கால்', en: 'left knee' },
+        'shin-r-front': { ta: 'வலது முழங்கால்', en: 'right shin' },
+        'shin-l-front': { ta: 'இடது முழங்கால்', en: 'left shin' },
+        'ankle-r-front': { ta: 'வலது கணுக்கால்', en: 'right ankle' },
+        'ankle-l-front': { ta: 'இடது கணுக்கால்', en: 'left ankle' },
+        'foot-r-front': { ta: 'வலது பாதம்', en: 'right foot' },
+        'foot-l-front': { ta: 'இடது பாதம்', en: 'left foot' },
+
+        // Back View
+        'head-back': { ta: 'தலை', en: 'head' },
+        'neck-back': { ta: 'கழுத்து', en: 'neck' },
         'back': { ta: 'முதுகு', en: 'back' },
-        'buttocks': { ta: 'பின் பகுதி', en: 'buttocks' }
+        'shoulder-r-back': { ta: 'வலது தோள்பட்டை', en: 'right shoulder' },
+        'shoulder-l-back': { ta: 'இடது தோள்பட்டை', en: 'left shoulder' },
+        'arm-r-back': { ta: 'வலது கை', en: 'right arm' },
+        'arm-l-back': { ta: 'இடது கை', en: 'left arm' },
+        'forearm-r-back': { ta: 'வலது முன்கை', en: 'right forearm' },
+        'forearm-l-back': { ta: 'இடது முன்கை', en: 'left forearm' },
+        'hand-r-back': { ta: 'வலது கை', en: 'right hand' },
+        'hand-l-back': { ta: 'இடது கை', en: 'left hand' },
+        'buttocks': { ta: 'பிட்டம்', en: 'buttocks' },
+        'waist-back': { ta: 'இடுப்பு', en: 'waist' },
+        'thigh-r-back': { ta: 'வலது தொடை', en: 'right thigh' },
+        'thigh-l-back': { ta: 'இடது தொடை', en: 'left thigh' },
+        'knee-r-back': { ta: 'வலது முழங்கால்', en: 'right knee' },
+        'knee-l-back': { ta: 'இடது முழங்கால்', en: 'left knee' },
+        'calf-r-back': { ta: 'வலது கன்று', en: 'right calf' },
+        'calf-l-back': { ta: 'இடது கன்று', en: 'left calf' },
+        'ankle-r-back': { ta: 'வலது கணுக்கால்', en: 'right ankle' },
+        'ankle-l-back': { ta: 'இடது கணுக்கால்', en: 'left ankle' },
+        'foot-r-back': { ta: 'வலது பாதம்', en: 'right foot' },
+        'foot-l-back': { ta: 'இடது பாதம்', en: 'left foot' },
     };
 
     let currentPage = 'login';
     let currentLang = 'ta';
     let steps = 0;
     let stepTrackerInterval = null;
+    let stepTrackerHandler = null; // New variable to hold the devicemotion event handler
     const moodEntries = [];
     const foodPlan = [];
     const emergencyContacts = [];
     const painMapState = {};
+    let isFrontView = true; // State for body pain map view
 
     const getTranslation = (key) => translations[currentLang][key] || key;
     const appContainer = document.getElementById('app');
@@ -268,36 +365,31 @@
     }
 
     // Function to handle speech recognition (mic input)
-    const toggleSpeechRecognition = (inputElementId) => {
-        const micButton = document.querySelector(`[data-input-id="${inputElementId}"]`);
-        const aiTipElement = document.getElementById('aiTip');
+    const toggleSpeechRecognition = (inputElementId, buttonElement) => {
+        const aiTipElement = document.getElementById('tipOutput') || document.getElementById('recipeOutput');
+        const input = document.getElementById(inputElementId);
 
-        // Check for browser support
         if (!SpeechRecognition) {
             showMessageBox('உங்கள் உலாவி பேச்சு அங்கீகாரத்தை ஆதரிக்கவில்லை. (Your browser does not support Speech Recognition).');
             return;
         }
 
         if (isListening) {
-            // Stop listening
             recognition.stop();
             isListening = false;
-            micButton.textContent = '🎤';
+            buttonElement.innerHTML = '<i class="fas fa-microphone"></i>';
             if (aiTipElement) {
                 aiTipElement.textContent = getTranslation('micStopped');
             }
         } else {
-            // Start listening
             recognition = new SpeechRecognition();
             recognition.lang = currentLang === 'ta' ? 'ta-IN' : 'en-US';
             recognition.interimResults = false;
             recognition.maxAlternatives = 1;
 
-            const input = document.getElementById(inputElementId);
-
             recognition.onstart = () => {
                 isListening = true;
-                micButton.textContent = '🛑';
+                buttonElement.innerHTML = '<i class="fas fa-microphone-slash"></i>';
                 if (aiTipElement) {
                     aiTipElement.textContent = getTranslation('micListening');
                 }
@@ -317,11 +409,10 @@
                 console.error('Speech recognition error', event.error);
                 showMessageBox(`பேச்சு அங்கீகாரம் பிழை: ${event.error}. (Speech recognition error: ${event.error})`);
             };
-            
+
             recognition.onend = () => {
                 isListening = false;
-                micButton.textContent = '🎤';
-                // Reset the AI tip message only if a result was not received
+                buttonElement.innerHTML = '<i class="fas fa-microphone"></i>';
                 if (aiTipElement && aiTipElement.textContent === getTranslation('micListening')) {
                     aiTipElement.textContent = '';
                 }
@@ -332,55 +423,77 @@
     };
 
     // Function to handle speech synthesis (speaker output)
-    const toggleSpeak = (text, btnId) => {
-        const speakButton = document.getElementById(btnId);
+    const toggleSpeak = (text, buttonElement) => {
+        if (!synth) {
+            showMessageBox('உங்கள் உலாவி பேச்சு தொகுப்பை ஆதரிக்கவில்லை. (Your browser does not support speech synthesis).');
+            return;
+        }
 
         if (isSpeaking) {
-            // Stop speaking
             synth.cancel();
             isSpeaking = false;
-            if (speakButton) speakButton.textContent = '🔊';
+            buttonElement.innerHTML = '<i class="fas fa-volume-up"></i>';
         } else {
-            // Start speaking
-            if (!text || text.trim() === getTranslation('yourTipHere')) {
+            if (!text || text.trim() === getTranslation('yourTipHere') || text.trim() === getTranslation('noRecipe')) {
                 showMessageBox('பேச எதுவும் இல்லை.');
                 return;
             }
-            
+
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = currentLang === 'ta' ? 'ta-IN' : 'en-US';
-            
+
             utterance.onstart = () => {
                 isSpeaking = true;
-                if (speakButton) speakButton.textContent = '⏹️';
+                buttonElement.innerHTML = '<i class="fas fa-volume-mute"></i>';
             };
-            
+
             utterance.onend = () => {
                 isSpeaking = false;
-                if (speakButton) speakButton.textContent = '🔊';
+                buttonElement.innerHTML = '<i class="fas fa-volume-up"></i>';
             };
 
             synth.speak(utterance);
         }
     };
+    
+    // New function to parse text and format as an ordered list
+    const parseTipsAsList = (tipText) => {
+        const lines = tipText.split('\n').filter(line => line.trim() !== '');
+        
+        let html = '';
+        if (lines.length > 1) {
+            html += '<ol class="list-decimal list-inside space-y-2 mt-4 text-left">';
+            lines.forEach(line => {
+                const cleanedLine = line.replace(/^\s*(\d+\.|\*|-)\s*/, '').trim();
+                if (cleanedLine) {
+                    html += `<li class="text-gray-700">${cleanedLine}</li>`;
+                }
+            });
+            html += '</ol>';
+        } else {
+            html = `<p class="text-gray-700 mt-4 text-center">${tipText}</p>`;
+        }
+        return html;
+    };
+
 
     // AI Tip Generation using Gemini API
     const getAiTipFromPrompt = async (prompt, outputId) => {
         const outputElement = document.getElementById(outputId);
-        outputElement.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> ${getTranslation('loadingMessage')}`;
+        outputElement.innerHTML = `<div class="loading-spinner"></div> <span class="ml-2">${getTranslation('loadingMessage')}</span>`;
 
         const finalPrompt = `${prompt}
-Please provide a response in ${currentLang === 'ta' ? 'Tamil' : 'English'}. Format the response as a detailed, point-by-point list. Do not include any introductory or concluding sentences outside of the list.`;
+Please provide a response in ${currentLang === 'ta' ? 'Tamil' : 'English'}. Format the response as a detailed, step-by-step numbered list. Add some relevant emojis (emojis should be after the sentence) for each step. Do not include any introductory or concluding sentences outside of the list.`;
 
         try {
             const chatHistory = [];
             chatHistory.push({ role: "user", parts: [{ text: finalPrompt }] });
             const payload = { contents: chatHistory };
-            
+
             // The API key is provided by the canvas environment at runtime.
             // DO NOT put a hard-coded key here.
             const apiKey = "AIzaSyA5Kji5739tmhOPFJi0De2Pl_io2Jmo-V0";
-            
+
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
             const response = await fetch(apiUrl, {
                 method: 'POST',
@@ -394,7 +507,7 @@ Please provide a response in ${currentLang === 'ta' ? 'Tamil' : 'English'}. Form
             }
 
             const result = await response.json();
-            
+
             let tipText = getTranslation('yourTipHere');
             if (result.candidates && result.candidates.length > 0 &&
                 result.candidates[0].content && result.candidates[0].content.parts &&
@@ -404,10 +517,10 @@ Please provide a response in ${currentLang === 'ta' ? 'Tamil' : 'English'}. Form
                 tipText = getTranslation('noRecipe');
             }
 
-            outputElement.textContent = tipText;
+            outputElement.innerHTML = parseTipsAsList(tipText);
         } catch (error) {
             console.error('Error generating AI tip:', error);
-            outputElement.textContent = `உதவிக்குறிப்பை உருவாக்க முடியவில்லை: ${error.message}`;
+            outputElement.innerHTML = `<p class="text-red-500 text-center">உதவிக்குறிப்பை உருவாக்க முடியவில்லை: ${error.message}</p>`;
         }
     };
 
@@ -420,7 +533,13 @@ Please provide a response in ${currentLang === 'ta' ? 'Tamil' : 'English'}. Form
         // Hide bottom bar by default and show it only when needed
         bottomBar.classList.add('hidden');
 
-        switch(currentPage) {
+        // New logic to remove the event listener on page change
+        if (stepTrackerHandler) {
+            window.removeEventListener('devicemotion', stepTrackerHandler);
+            stepTrackerHandler = null;
+        }
+
+        switch (currentPage) {
             case 'login':
                 renderLoginPage();
                 break;
@@ -476,13 +595,13 @@ Please provide a response in ${currentLang === 'ta' ? 'Tamil' : 'English'}. Form
         currentPage = page;
         render();
     };
-    
+
     // Function to toggle language
     const toggleLanguage = () => {
         currentLang = currentLang === 'ta' ? 'en' : 'ta';
         render();
     };
-    
+
     // Renders the bottom bar with the new centered layout
     const renderBottomBar = () => {
         bottomBar.innerHTML = `
@@ -499,7 +618,7 @@ Please provide a response in ${currentLang === 'ta' ? 'Tamil' : 'English'}. Form
         document.getElementById('langToggleBottom').addEventListener('click', toggleLanguage);
     };
 
-    // Renders the login page
+    // Renders the login page with password toggle feature
     const renderLoginPage = () => {
         appContainer.innerHTML = `
             <div class="flex items-center justify-center min-h-screen bg-gradient-to-br from-green-500 to-blue-500 p-4">
@@ -512,13 +631,28 @@ Please provide a response in ${currentLang === 'ta' ? 'Tamil' : 'English'}. Form
                     <h1 class="text-3xl font-extrabold text-center text-gray-800 mb-6">${getTranslation('loginTitle')}</h1>
                     <form id="loginForm" class="flex flex-col space-y-4">
                         <input type="text" id="username" placeholder="${getTranslation('usernamePlaceholder')}" class="p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400">
-                        <input type="password" id="password" placeholder="${getTranslation('passwordPlaceholder')}" class="p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400">
+                        <div class="relative">
+                            <input type="password" id="password" placeholder="${getTranslation('passwordPlaceholder')}" class="w-full p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400">
+                            <span id="togglePassword" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 cursor-pointer">
+                                <i class="fas fa-eye"></i>
+                            </span>
+                        </div>
                         <p id="errorMsg" class="text-red-500 text-sm text-center hidden"></p>
                         <button type="submit" class="bg-green-500 text-white font-bold p-3 rounded-lg shadow-md hover:bg-green-600 transition-colors">${getTranslation('loginButton')}</button>
                     </form>
                 </div>
             </div>
         `;
+
+        // Event listener for password toggle
+        const togglePassword = document.getElementById('togglePassword');
+        const passwordInput = document.getElementById('password');
+        togglePassword.addEventListener('click', () => {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            togglePassword.querySelector('i').classList.toggle('fa-eye');
+            togglePassword.querySelector('i').classList.toggle('fa-eye-slash');
+        });
 
         document.getElementById('langToggleLogin').addEventListener('click', toggleLanguage);
         document.getElementById('loginForm').addEventListener('submit', (e) => {
@@ -540,361 +674,581 @@ Please provide a response in ${currentLang === 'ta' ? 'Tamil' : 'English'}. Form
         const mainPageHtml = `
             <div class="flex flex-col items-center min-h-screen bg-gradient-to-br from-blue-500 to-green-500 p-8 text-gray-800 relative">
                 <h1 class="text-4xl font-extrabold mb-8 text-center text-white drop-shadow-lg">${getTranslation('allFeaturesTitle')}</h1>
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-6 w-full max-w-5xl">
-                    ${renderFeatureCardHtml('stepTracker', '🚶', getTranslation('stepTracker'))}
-                    ${renderFeatureCardHtml('generalTips', '�', getTranslation('generalTips'))}
-                    ${renderFeatureCardHtml('localTips', '🌱', getTranslation('localTips'))}
-                    ${renderFeatureCardHtml('beautyTips', '✨', getTranslation('beautyTips'))}
-                    ${renderFeatureCardHtml('symptomFinder', '🩺', getTranslation('symptomFinder'))}
-                    ${renderFeatureCardHtml('foodPlan', '🍎', getTranslation('foodPlan'))}
-                    ${renderFeatureCardHtml('exerciseYoga', '🧘', getTranslation('exerciseYoga'))}
-                    ${renderFeatureCardHtml('firstAid', '⛑️', getTranslation('firstAid'))}
-                    ${renderFeatureCardHtml('bodyPainMap', '🗺️', getTranslation('bodyPainMap'))}
-                    ${renderFeatureCardHtml('moodJournal', '😊', getTranslation('moodJournal'))}
-                    ${renderFeatureCardHtml('foodRecipes', '🍲', getTranslation('foodRecipes'))}
+                <div class="grid grid-cols-2 md:grid-cols-3 
+lg:grid-cols-4 gap-6 w-full max-w-7xl">
+                    ${features.map(feature => `
+                        <div class="feature-card flex flex-col items-center justify-center text-center p-6 bg-white rounded-xl shadow-lg transform transition-transform duration-300 hover:scale-105 hover:bg-gray-50 cursor-pointer" onclick="navigateTo('${feature.id}')">
+                            <div class="text-4xl text-blue-600 mb-4 transition-colors duration-300">
+                                <i class="fa-solid ${feature.icon}"></i>
+                            </div>
+                            <span class="text-md font-semibold text-gray-700">${getTranslation(feature.titleKey)}</span>
+                        </div>
+                    `).join('')}
                 </div>
+                <button id="langToggleMain" class="absolute top-4 right-4 text-white hover:text-gray-200 transition-colors">
+                    <i class="fa fa-globe text-2xl"></i>
+                </button>
             </div>
         `;
         appContainer.innerHTML = mainPageHtml;
-        
-        // Add event listeners after the HTML is rendered
-        document.querySelectorAll('[data-page]').forEach(button => {
-            button.addEventListener('click', () => navigateTo(button.dataset.page));
-        });
+        document.getElementById('langToggleMain').addEventListener('click', toggleLanguage);
     };
 
-    // Helper function to generate feature card HTML
-    const renderFeatureCardHtml = (page, icon, title) => {
-        return `
-            <button data-page="${page}" class="flex flex-col items-center justify-center p-6 bg-white rounded-2xl shadow-xl hover:shadow-2xl transition-all transform hover:scale-105 border border-gray-200">
-                <div class="text-5xl mb-3">${icon}</div>
-                <div class="text-md font-semibold text-center text-gray-800">${title}</div>
-            </button>
+    // Renders a simple page with back button
+    const renderSimplePage = (title, icon, content) => {
+        appContainer.innerHTML = `
+            <div class="flex flex-col items-center justify-center text-center p-8">
+                <div class="text-6xl text-gray-600 mb-4">${icon}</div>
+                <h1 class="text-3xl font-bold mb-4">${title}</h1>
+                <p class="text-gray-600">${content}</p>
+            </div>
         `;
     };
 
-    // Implemented feature pages below
+    const renderAiTipsPage = (title, placeholderText, featureId) => {
+        const promptType = featureId;
+        appContainer.innerHTML = `
+            <div class="w-full max-w-4xl p-4 md:p-8 flex flex-col items-center">
+                <h1 class="text-3xl font-extrabold text-center text-gray-800 mb-6">${title}</h1>
+                <div class="w-full flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 mb-6">
+                    <input type="text" id="aiPromptInput" placeholder="${placeholderText}" class="flex-grow p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow text-lg">
+                    <button id="micButton" class="bg-gray-200 text-gray-800 text-xl p-4 rounded-xl shadow-md hover:bg-gray-300 transition-colors flex items-center justify-center w-full md:w-auto">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                    <button id="submitBtn" class="bg-indigo-600 text-white font-semibold p-4 rounded-xl shadow-md hover:bg-indigo-700 transition-colors w-full md:w-auto">
+                        <i class="fa fa-search"></i>
+                    </button>
+                </div>
+                <div class="w-full output-box-container relative">
+                    <div id="tipOutput" class="p-6 text-gray-700 bg-gray-50 rounded-xl shadow-inner min-h-[200px] flex items-center justify-center transition-all duration-300">
+                        <p class="text-center">${getTranslation('yourTipHere')}</p>
+                    </div>
+                    <div class="output-box-actions flex space-x-2">
+                         <button id="speakButton" class="bg-gray-200 text-gray-800 text-xl p-3 rounded-full shadow-md hover:bg-gray-300 transition-colors">
+                            <i class="fas fa-volume-up"></i>
+                        </button>
+                        <button id="copyButton" class="bg-gray-200 text-gray-800 text-xl p-3 rounded-full shadow-md hover:bg-gray-300 transition-colors">
+                            <i class="far fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const submitButton = document.getElementById('submitBtn');
+        const aiPromptInput = document.getElementById('aiPromptInput');
+        const outputElement = document.getElementById('tipOutput');
+        const micButton = document.getElementById('micButton');
+        const speakButton = document.getElementById('speakButton');
+        const copyButton = document.getElementById('copyButton');
+
+        submitButton.addEventListener('click', () => {
+            const prompt = aiPromptInput.value;
+            if (prompt.trim() !== '') {
+                getAiTipFromPrompt(prompt, 'tipOutput');
+            } else {
+                showMessageBox('Please enter a query to get tips.');
+            }
+        });
+
+        aiPromptInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                submitButton.click();
+            }
+        });
+
+        micButton.addEventListener('click', () => {
+            toggleSpeechRecognition('aiPromptInput', micButton);
+        });
+
+        speakButton.addEventListener('click', () => {
+            const textToSpeak = outputElement.innerText;
+            toggleSpeak(textToSpeak, speakButton);
+        });
+
+        copyButton.addEventListener('click', () => {
+            const textToCopy = outputElement.innerText;
+            if (textToCopy && textToCopy !== getTranslation('yourTipHere')) {
+                const textarea = document.createElement('textarea');
+                textarea.value = textToCopy;
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    document.execCommand('copy');
+                    showMessageBox('உதவிக்குறிப்பு நகலெடுக்கப்பட்டது!');
+                } catch (err) {
+                    console.error('Failed to copy text: ', err);
+                    showMessageBox('நகலெடுப்பதில் சிக்கல் ஏற்பட்டது.');
+                }
+                document.body.removeChild(textarea);
+            }
+        });
+    };
+
+    // Renders the step tracker page
     const renderStepTrackerPage = () => {
         appContainer.innerHTML = `
-            <div class="min-h-screen flex flex-col items-center p-8 bg-gray-100 text-gray-800">
-                <div class="max-w-2xl w-full text-center bg-white rounded-2xl shadow-2xl p-8 relative">
-                    <h1 class="text-4xl font-extrabold mb-4"><span class="mr-2">🚶</span>${getTranslation('stepTracker')}</h1>
-                    <div class="flex flex-col items-center justify-center space-y-4">
-                        <div id="stepsDisplay" class="text-5xl font-bold text-green-600">${steps}</div>
-                        <p class="text-lg">${getTranslation('stepMotivation')}</p>
-                        <div class="flex space-x-4">
-                            <button id="startTrackingBtn" class="bg-blue-500 text-white font-bold py-2 px-6 rounded-full shadow-lg hover:bg-blue-600 transition-colors">${getTranslation('startTracking')}</button>
-                            <button id="stopTrackingBtn" class="bg-red-500 text-white font-bold py-2 px-6 rounded-full shadow-lg hover:bg-red-600 transition-colors">${getTranslation('stopTracking')}</button>
-                        </div>
-                        <button id="resetStepsBtn" class="bg-gray-400 text-white font-bold py-2 px-6 rounded-full shadow-lg hover:bg-gray-500 transition-colors">${getTranslation('reset')}</button>
-                    </div>
+            <div class="flex flex-col items-center justify-center text-center p-8 w-full max-w-2xl">
+                <h1 class="text-3xl font-bold text-gray-800 mb-6">${getTranslation('stepTracker')}</h1>
+                <div class="bg-white rounded-full w-48 h-48 flex items-center justify-center shadow-lg mb-6">
+                    <p id="stepsDisplay" class="text-4xl font-extrabold text-indigo-600">${getTranslation('stepsCount')} 0</p>
+                </div>
+                <p class="text-gray-600 mb-8">${getTranslation('stepMotivation')}</p>
+                <div class="flex space-x-4">
+                    <button id="startStopBtn" class="bg-green-500 text-white font-semibold py-3 px-6 rounded-full shadow-md hover:bg-green-600 transition-colors">
+                        ${getTranslation('startTracking')}
+                    </button>
+                    <button id="resetBtn" class="bg-gray-300 text-gray-800 font-semibold py-3 px-6 rounded-full shadow-md hover:bg-gray-400 transition-colors">
+                        ${getTranslation('reset')}
+                    </button>
                 </div>
             </div>
         `;
+        const startStopBtn = document.getElementById('startStopBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const stepsDisplay = document.getElementById('stepsDisplay');
 
-        document.getElementById('startTrackingBtn').addEventListener('click', () => {
-            if (!stepTrackerInterval) {
-                stepTrackerInterval = setInterval(() => {
-                    steps++;
-                    document.getElementById('stepsDisplay').textContent = steps;
-                }, 2800);
-            }
-        });
-        document.getElementById('stopTrackingBtn').addEventListener('click', () => {
-            if (stepTrackerInterval) {
-                clearInterval(stepTrackerInterval);
-                stepTrackerInterval = null;
-            }
-        });
-        document.getElementById('resetStepsBtn').addEventListener('click', () => {
-            steps = 0;
-            if (stepTrackerInterval) {
-                clearInterval(stepTrackerInterval);
-                stepTrackerInterval = null;
-            }
-            document.getElementById('stepsDisplay').textContent = steps;
-        });
-    };
-
-    const renderMoodJournalPage = () => {
-        appContainer.innerHTML = `
-            <div class="min-h-screen flex flex-col items-center p-8 bg-gray-100 text-gray-800">
-                <div class="max-w-2xl w-full bg-white rounded-2xl shadow-2xl p-8 relative">
-                    <h1 class="text-4xl font-extrabold mb-4 text-center"><span class="mr-2">😊</span>${getTranslation('moodJournal')}</h1>
-                    <p class="text-center mb-4">${getTranslation('journalPrompt')}</p>
-                    <div class="flex flex-col space-y-4">
-                        <select id="moodSelect" class="p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400">
-                            <option value="">${getTranslation('moodSelect')}</option>
-                            <option value="Happy">${getTranslation('moodHappy')}</option>
-                            <option value="Sad">${getTranslation('moodSad')}</option>
-                            <option value="Normal">${getTranslation('moodNormal')}</option>
-                            <option value="Anxious">${getTranslation('moodAnxious')}</option>
-                            <option value="Grateful">${getTranslation('moodGrateful')}</option>
-                        </select>
-                        <div class="flex items-center space-x-2">
-                            <textarea id="moodEntry" placeholder="${getTranslation('journalPrompt')}" rows="5" class="flex-grow p-4 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"></textarea>
-                            <button id="moodMicBtn" class="text-xl text-gray-600 hover:text-blue-500 transition-colors p-2" data-input-id="moodEntry">🎤</button>
-                        </div>
-                        <button id="saveEntryBtn" class="bg-green-500 text-white font-bold p-3 rounded-lg shadow-md hover:bg-green-600 transition-colors">${getTranslation('saveEntry')}</button>
-                    </div>
-                    <div class="mt-8">
-                        <h2 class="text-2xl font-bold mb-4">${getTranslation('yourEntries')}</h2>
-                        <ul id="entriesList" class="space-y-4">
-                            ${moodEntries.map(entry => `<li class="p-4 bg-gray-100 rounded-lg shadow-inner">${entry}</li>`).join('')}
-                            ${moodEntries.length === 0 ? `<li class="p-4 text-gray-500">${getTranslation('entriesPlaceholder')}</li>` : ''}
-                        </ul>
-                    </div>
-                    <div class="mt-8">
-                        <h2 class="text-2xl font-bold mb-4">${getTranslation('moodAnalysis')}</h2>
-                        <div class="flex items-start space-x-2">
-                            <div id="moodAnalysisResult" class="flex-grow p-4 bg-gray-100 rounded-lg whitespace-pre-wrap text-gray-800">
-                                ${getTranslation('moodAnalysisPlaceholder')}
-                            </div>
-                            <button id="speakAnalysisBtn" class="text-xl text-gray-600 hover:text-green-500 transition-colors p-2">🔊</button>
-                        </div>
-                        <button id="analyzeMoodBtn" class="bg-blue-500 text-white font-bold p-3 rounded-lg shadow-md hover:bg-blue-600 transition-colors mt-4">${getTranslation('analyzeMood')}</button>
-                    </div>
-                </div>
-            </div>
-        `;
-        document.getElementById('speakAnalysisBtn').addEventListener('click', () => {
-            const textToSpeak = document.getElementById('moodAnalysisResult').textContent;
-            toggleSpeak(textToSpeak, 'speakAnalysisBtn');
-        });
-        document.getElementById('moodMicBtn').addEventListener('click', () => toggleSpeechRecognition('moodEntry'));
-        document.getElementById('saveEntryBtn').addEventListener('click', async () => {
-            const mood = document.getElementById('moodSelect').value;
-            const entry = document.getElementById('moodEntry').value;
-            if (mood && entry) {
-                const combinedEntry = `தேதி: ${new Date().toLocaleDateString(currentLang === 'ta' ? 'ta-IN' : 'en-US')}, மனநிலை: ${getTranslation(`mood${mood}`)}, குறிப்பு: ${entry}`;
-                moodEntries.push(combinedEntry);
-                renderMoodJournalPage();
+        // New step tracking logic using DeviceMotionEvent
+        startStopBtn.addEventListener('click', () => {
+            if (stepTrackerHandler) {
+                window.removeEventListener('devicemotion', stepTrackerHandler);
+                stepTrackerHandler = null;
+                startStopBtn.textContent = getTranslation('startTracking');
+                startStopBtn.classList.remove('bg-red-500', 'hover:bg-red-600');
+                startStopBtn.classList.add('bg-green-500', 'hover:bg-green-600');
             } else {
-                showMessageBox('தயவுசெய்து உங்கள் மனநிலையையும் குறிப்பையும் உள்ளிடவும்.');
+                if (window.DeviceMotionEvent) {
+                    let lastY = null;
+                    let lastZ = null;
+                    let lastX = null;
+                    const threshold = 1.2;
+
+                    stepTrackerHandler = (event) => {
+                        const { x, y, z } = event.accelerationIncludingGravity;
+
+                        if (lastY !== null && lastZ !== null && lastX !== null) {
+                            const deltaY = Math.abs(y - lastY);
+                            const deltaZ = Math.abs(z - lastZ);
+                            const deltaX = Math.abs(x - lastX);
+
+                            if ((deltaY > threshold || deltaZ > threshold || deltaX > threshold) && (deltaY < 50 && deltaZ < 50 && deltaX < 50)) {
+                                steps++;
+                                stepsDisplay.textContent = `${getTranslation('stepsCount')} ${steps}`;
+                            }
+                        }
+                        lastY = y;
+                        lastZ = z;
+                        lastX = x;
+                    };
+                    window.addEventListener('devicemotion', stepTrackerHandler);
+                    startStopBtn.textContent = getTranslation('stopTracking');
+                    startStopBtn.classList.remove('bg-green-500', 'hover:bg-green-600');
+                    startStopBtn.classList.add('bg-red-500', 'hover:bg-red-600');
+                } else {
+                    showMessageBox(getTranslation('motionSensorNotSupported'));
+                }
             }
         });
-        document.getElementById('analyzeMoodBtn').addEventListener('click', () => {
-            const moodPrompt = `இந்த மனநிலை மற்றும் நன்றியுணர்வு நாட்குறிப்பு பதிவுகளை பகுப்பாய்வு செய்து ஒரு சுருக்கத்தை வழங்கவும்: ${JSON.stringify(moodEntries)}. தமிழில் பதிலளிக்கவும்.`;
-            getAiTipFromPrompt(moodPrompt, 'moodAnalysisResult');
+
+        resetBtn.addEventListener('click', () => {
+            steps = 0;
+            stepsDisplay.textContent = `${getTranslation('stepsCount')} 0`;
         });
     };
 
+    // Renders the food recipes page
     const renderFoodRecipesPage = () => {
         appContainer.innerHTML = `
-            <div class="min-h-screen flex flex-col items-center p-8 bg-gray-100 text-gray-800">
-                <div class="max-w-2xl w-full bg-white rounded-2xl shadow-2xl p-8 relative">
-                    <h1 class="text-4xl font-extrabold mb-4 text-center"><span class="mr-2">🍲</span>${getTranslation('foodRecipes')}</h1>
-                    <p class="text-center mb-4">${getTranslation('inputPlaceholderRecipes')}</p>
-                    <div class="flex flex-col space-y-4">
-                        <div class="flex items-center space-x-2">
-                            <input type="text" id="recipeInput" placeholder="${getTranslation('inputPlaceholderRecipes')}" class="flex-grow p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400">
-                            <button id="recipeMicBtn" class="text-xl text-gray-600 hover:text-blue-500 transition-colors p-2" data-input-id="recipeInput">🎤</button>
-                        </div>
-                        <button id="getRecipeBtn" class="bg-green-500 text-white font-bold p-3 rounded-lg shadow-md hover:bg-green-600 transition-colors">${getTranslation('getTip')}</button>
+            <div class="w-full max-w-4xl p-4 md:p-8 flex flex-col items-center">
+                <h1 class="text-3xl font-extrabold text-center text-gray-800 mb-6">${getTranslation('foodRecipes')}</h1>
+                <div class="w-full flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 mb-6">
+                    <input type="text" id="recipeInput" placeholder="${getTranslation('inputPlaceholderRecipes')}" class="flex-grow p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow text-lg">
+                    <button id="micButton" class="bg-gray-200 text-gray-800 text-xl p-4 rounded-xl shadow-md hover:bg-gray-300 transition-colors flex items-center justify-center w-full md:w-auto">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                    <button id="getRecipeBtn" class="bg-indigo-600 text-white font-semibold p-4 rounded-xl shadow-md hover:bg-indigo-700 transition-colors w-full md:w-auto">
+                        ${getTranslation('getRecipe')}
+                    </button>
+                </div>
+                <div class="w-full output-box-container relative">
+                    <div id="recipeOutput" class="p-6 text-gray-700 bg-gray-50 rounded-xl shadow-inner min-h-[200px] flex items-center justify-center transition-all duration-300">
+                        <p class="text-center">${getTranslation('yourTipHere')}</p>
                     </div>
-                    <div class="mt-8">
-                        <div id="aiTip" class="bg-gray-100 p-6 rounded-lg whitespace-pre-wrap leading-relaxed text-gray-800">
-                            ${getTranslation('yourTipHere')}
-                        </div>
-                        <button id="speakTipBtn" class="mt-4 bg-blue-500 text-white font-bold py-2 px-6 rounded-full shadow-lg hover:bg-blue-600 transition-colors">
-                            🔊 ${getTranslation('speakTip')}
+                     <div class="output-box-actions flex space-x-2">
+                        <button id="speakButton" class="bg-gray-200 text-gray-800 text-xl p-3 rounded-full shadow-md hover:bg-gray-300 transition-colors">
+                            <i class="fas fa-volume-up"></i>
+                        </button>
+                        <button id="copyButton" class="bg-gray-200 text-gray-800 text-xl p-3 rounded-full shadow-md hover:bg-gray-300 transition-colors">
+                            <i class="far fa-copy"></i>
                         </button>
                     </div>
                 </div>
             </div>
         `;
-        document.getElementById('getRecipeBtn').addEventListener('click', () => {
-            const recipeInput = document.getElementById('recipeInput').value;
-            if (recipeInput) {
-                getAiTipFromPrompt(`Give me a detailed recipe for ${recipeInput}.`, 'aiTip');
+        const getRecipeBtn = document.getElementById('getRecipeBtn');
+        const recipeInput = document.getElementById('recipeInput');
+        const outputElement = document.getElementById('recipeOutput');
+        const micButton = document.getElementById('micButton');
+        const speakButton = document.getElementById('speakButton');
+        const copyButton = document.getElementById('copyButton');
+
+        getRecipeBtn.addEventListener('click', () => {
+            const prompt = recipeInput.value;
+            if (prompt.trim() !== '') {
+                const finalPrompt = `${getTranslation('foodRecipes')} for "${prompt}". Include ingredients list and step-by-step instructions.`;
+                getAiTipFromPrompt(finalPrompt, 'recipeOutput');
             } else {
-                showMessageBox('செய்முறைக்கு ஒரு பெயர் அல்லது மூலப்பொருளை உள்ளிடவும்.');
+                showMessageBox('Please enter a food name or ingredients.');
             }
         });
-        document.getElementById('recipeMicBtn').addEventListener('click', () => toggleSpeechRecognition('recipeInput'));
-        document.getElementById('speakTipBtn').addEventListener('click', () => {
-            const textToSpeak = document.getElementById('aiTip').textContent;
-            toggleSpeak(textToSpeak, 'speakTipBtn');
+
+        recipeInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                getRecipeBtn.click();
+            }
+        });
+
+        micButton.addEventListener('click', () => {
+            toggleSpeechRecognition('recipeInput', micButton);
+        });
+
+        speakButton.addEventListener('click', () => {
+            const textToSpeak = outputElement.innerText;
+            toggleSpeak(textToSpeak, speakButton);
+        });
+
+        copyButton.addEventListener('click', () => {
+            const textToCopy = outputElement.innerText;
+            if (textToCopy && textToCopy !== getTranslation('yourTipHere')) {
+                const textarea = document.createElement('textarea');
+                textarea.value = textToCopy;
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    document.execCommand('copy');
+                    showMessageBox('செய்முறை நகலெடுக்கப்பட்டது!');
+                } catch (err) {
+                    console.error('Failed to copy text: ', err);
+                    showMessageBox('நகலெடுப்பதில் சிக்கல் ஏற்பட்டது.');
+                }
+                document.body.removeChild(textarea);
+            }
         });
     };
 
+    // Renders the body pain map page
     const renderBodyPainMapPage = () => {
         appContainer.innerHTML = `
-            <div class="min-h-screen flex flex-col items-center p-8 bg-gray-100 text-gray-800">
-                <div class="max-w-2xl w-full bg-white rounded-2xl shadow-2xl p-8 relative">
-                    <h1 class="text-4xl font-extrabold mb-4 text-center"><span class="mr-2">🗺️</span>${getTranslation('bodyPainMap')}</h1>
-                    <p class="text-center mb-4">${getTranslation('painMapTipInstructions')}</p>
-                    <div class="pain-map-container" id="pain-map-container">
-                        <svg class="pain-map-svg" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
-                            <!-- Male body outline - basic paths -->
-                            <path class="body-part" id="head" d="M250,50 C280,50 300,80 300,100 C300,120 280,150 250,150 C220,150 200,120 200,100 C200,80 220,50 250,50 Z" />
-                            <path class="body-part" id="neck" d="M240,150 L260,150 L260,170 L240,170 Z" />
-                            <path class="body-part" id="shoulder-r" d="M260,170 L290,160 L320,170 L300,185 L260,170 Z" />
-                            <path class="body-part" id="shoulder-l" d="M240,170 L210,160 L180,170 L200,185 L240,170 Z" />
-                            <path class="body-part" id="chest" d="M240,170 C240,200 220,220 250,220 C280,220 260,200 260,170 Z" />
-                            <path class="body-part" id="stomach" d="M230,220 C230,240 220,260 250,260 C280,260 270,240 270,220 Z" />
-                            <path class="body-part" id="arm-r" d="M300,185 L320,250 L310,270 L290,200 Z" />
-                            <path class="body-part" id="arm-l" d="M200,185 L180,250 L190,270 L210,200 Z" />
-                            <path class="body-part" id="hand-r" d="M310,270 L320,290 C330,300 320,310 310,300 L300,280 Z" />
-                            <path class="body-part" id="hand-l" d="M190,270 L180,290 C170,300 180,310 190,300 L200,280 Z" />
-                            <path class="body-part" id="back" d="M230,220 L270,220 L270,320 L230,320 Z" />
-                            <path class="body-part" id="buttocks" d="M230,320 L270,320 L270,340 L230,340 Z" />
-                            <path class="body-part" id="leg-r" d="M270,340 L280,410 L270,440 L260,400 Z" />
-                            <path class="body-part" id="leg-l" d="M230,340 L220,410 L230,440 L240,400 Z" />
-                            <path class="body-part" id="foot-r" d="M270,440 L290,460 L280,470 L260,450 Z" />
-                            <path class="body-part" id="foot-l" d="M230,440 L210,460 L220,470 L240,450 Z" />
-                        </svg>
+            <div class="w-full max-w-4xl p-4 md:p-8 flex flex-col items-center">
+                <h1 class="text-3xl font-extrabold text-center text-gray-800 mb-6">${getTranslation('bodyPainMap')}</h1>
+                <p class="text-center text-gray-600 mb-4">${getTranslation('painMapTipInstructions')}</p>
+                <div class="flex space-x-4 mb-6">
+                    <button id="frontViewBtn" class="bg-blue-500 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-blue-600 transition-colors">${getTranslation('viewFront')}</button>
+                    <button id="backViewBtn" class="bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-gray-400 transition-colors">${getTranslation('viewBack')}</button>
+                </div>
+                <div class="pain-map-container mb-6">
+                    <svg id="painMapSvg" class="pain-map-svg" viewBox="0 0 1000 1000" xmlns="http://www.w3.org/2000/svg">
+                        <g id="front-view" style="display: block;">
+                            <path id="head-front" class="body-part" d="M495.7,85.6c-48.3,0-87.5,39.2-87.5,87.5v12.3c0,48.3,39.2,87.5,87.5,87.5s87.5-39.2,87.5-87.5v-12.3C583.2,124.8,544,85.6,495.7,85.6z"/>
+                            <path id="neck-front" class="body-part" d="M495.7,330.1c-15.6,0-28.2-12.6-28.2-28.2v-29.4h56.4v29.4C523.9,317.5,511.3,330.1,495.7,330.1z"/>
+                            <path id="chest" class="body-part" d="M608.6,330.1h-245.8c-15.6,0-28.2,12.6-28.2,28.2v110.1c0,15.6,12.6,28.2,28.2,28.2h245.8c15.6,0,28.2-12.6,28.2-28.2V358.3C636.8,342.7,624.2,330.1,608.6,330.1z"/>
+                            <path id="stomach" class="body-part" d="M608.6,496.6h-245.8c-15.6,0-28.2,12.6-28.2,28.2v94.7c0,15.6,12.6,28.2,28.2,28.2h245.8c15.6,0,28.2-12.6,28.2-28.2v-94.7C636.8,509.2,624.2,496.6,608.6,496.6z"/>
+                            <path id="shoulder-l-front" class="body-part" d="M636.8,386.7l-46.6-56.6c-6.8-8.3-17.7-10.8-27.1-6.4l-42.3,19.9l-22,23.1l22,23.1l42.3,19.9c9.4,4.4,20.3,1.9,27.1-6.4l46.6-56.6c6.8-8.3,11.3-17.2,12.3-26.6C648.1,403.9,643.6,395,636.8,386.7z"/>
+                            <path id="shoulder-r-front" class="body-part" d="M354.7,386.7l46.6-56.6c6.8-8.3,17.7-10.8,27.1-6.4l42.3,19.9l22,23.1l-22,23.1l-42.3,19.9c-9.4,4.4-20.3,1.9-27.1-6.4l-46.6-56.6c-6.8-8.3-11.3-17.2-12.3-26.6C343.4,403.9,347.9,395,354.7,386.7z"/>
+                            <path id="arm-l-front" class="body-part" d="M721.5,419.6L684,528.9l-45.7-12.2l37.5-109.3C700.1,402.1,721.5,419.6,721.5,419.6z"/>
+                            <path id="arm-r-front" class="body-part" d="M272.7,419.6L310.2,528.9l45.7-12.2l-37.5-109.3C294.1,402.1,272.7,419.6,272.7,419.6z"/>
+                            <path id="forearm-l-front" class="body-part" d="M721.5,564.3L684,673.6l-45.7-12.2l37.5-109.3C700.1,546.8,721.5,564.3,721.5,564.3z"/>
+                            <path id="forearm-r-front" class="body-part" d="M272.7,564.3L310.2,673.6l45.7-12.2l-37.5-109.3C294.1,546.8,272.7,564.3,272.7,564.3z"/>
+                            <path id="hand-l-front" class="body-part" d="M721.5,709L684,818.3l-45.7-12.2l37.5-109.3C700.1,691.5,721.5,709,721.5,709z"/>
+                            <path id="hand-r-front" class="body-part" d="M272.7,709L310.2,818.3l45.7-12.2l-37.5-109.3C294.1,691.5,272.7,709,272.7,709z"/>
+                            <path id="waist-front" class="body-part" d="M608.6,624.5h-245.8c-15.6,0-28.2,12.6-28.2,28.2v94.7c0,15.6,12.6,28.2,28.2,28.2h245.8c15.6,0,28.2-12.6,28.2-28.2v-94.7C636.8,637.1,624.2,624.5,608.6,624.5z"/>
+                            <path id="thigh-l-front" class="body-part" d="M570.8,690.8h-45.7c-15.6,0-28.2,12.6-28.2,28.2v114.7c0,15.6,12.6,28.2,28.2,28.2h45.7c15.6,0,28.2-12.6,28.2-28.2v-114.7C599,703.4,586.4,690.8,570.8,690.8z"/>
+                            <path id="thigh-r-front" class="body-part" d="M420.5,690.8h-45.7c-15.6,0-28.2,12.6-28.2,28.2v114.7c0,15.6,12.6,28.2,28.2,28.2h45.7c15.6,0,28.2-12.6,28.2-28.2v-114.7C448.7,703.4,436.1,690.8,420.5,690.8z"/>
+                            <path id="knee-l-front" class="body-part" d="M570.8,858.7h-45.7c-15.6,0-28.2,12.6-28.2,28.2v29.4h56.4v-29.4C599,871.3,586.4,858.7,570.8,858.7z"/>
+                            <path id="knee-r-front" class="body-part" d="M420.5,858.7h-45.7c-15.6,0-28.2,12.6-28.2,28.2v29.4h56.4v-29.4C448.7,871.3,436.1,858.7,420.5,858.7z"/>
+                            <path id="shin-l-front" class="body-part" d="M570.8,917.4h-45.7c-15.6,0-28.2,12.6-28.2,28.2v114.7c0,15.6,12.6,28.2,28.2,28.2h45.7c15.6,0,28.2-12.6,28.2-28.2v-114.7C599,930,586.4,917.4,570.8,917.4z"/>
+                            <path id="shin-r-front" class="body-part" d="M420.5,917.4h-45.7c-15.6,0-28.2,12.6-28.2,28.2v114.7c0,15.6,12.6,28.2,28.2,28.2h45.7c15.6,0,28.2-12.6,28.2-28.2v-114.7C448.7,930,436.1,917.4,420.5,917.4z"/>
+                            <path id="ankle-l-front" class="body-part" d="M570.8,1075.3h-45.7c-15.6,0-28.2,12.6-28.2,28.2v29.4h56.4v-29.4C599,1087.9,586.4,1075.3,570.8,1075.3z"/>
+                            <path id="ankle-r-front" class="body-part" d="M420.5,1075.3h-45.7c-15.6,0-28.2,12.6-28.2,28.2v29.4h56.4v-29.4C448.7,1087.9,436.1,1075.3,420.5,1075.3z"/>
+                            <path id="foot-l-front" class="body-part" d="M570.8,1134h-45.7c-15.6,0-28.2,12.6-28.2,28.2v29.4h56.4v-29.4C599,1146.6,586.4,1134,570.8,1134z"/>
+                            <path id="foot-r-front" class="body-part" d="M420.5,1134h-45.7c-15.6,0-28.2,12.6-28.2,28.2v29.4h56.4v-29.4C448.7,1146.6,436.1,1134,420.5,1134z"/>
+                        </g>
+
+                        <g id="back-view" style="display: none;">
+                             <path id="head-back" class="body-part" d="M495.7,85.6c-48.3,0-87.5,39.2-87.5,87.5v12.3c0,48.3,39.2,87.5,87.5,87.5s87.5-39.2,87.5-87.5v-12.3C583.2,124.8,544,85.6,495.7,85.6z"/>
+                             <path id="neck-back" class="body-part" d="M495.7,330.1c-15.6,0-28.2-12.6-28.2-28.2v-29.4h56.4v29.4C523.9,317.5,511.3,330.1,495.7,330.1z"/>
+                             <path id="back" class="body-part" d="M608.6,330.1h-245.8c-15.6,0-28.2,12.6-28.2,28.2v210.1c0,15.6,12.6,28.2,28.2,28.2h245.8c15.6,0,28.2-12.6,28.2-28.2V358.3C636.8,342.7,624.2,330.1,608.6,330.1z"/>
+                             <path id="waist-back" class="body-part" d="M608.6,564.5h-245.8c-15.6,0-28.2,12.6-28.2,28.2v94.7c0,15.6,12.6,28.2,28.2,28.2h245.8c15.6,0,28.2-12.6,28.2-28.2v-94.7C636.8,577.1,624.2,564.5,608.6,564.5z"/>
+                             <path id="buttocks" class="body-part" d="M608.6,680.1h-245.8c-15.6,0-28.2,12.6-28.2,28.2v94.7c0,15.6,12.6,28.2,28.2,28.2h245.8c15.6,0,28.2-12.6,28.2-28.2v-94.7C636.8,692.7,624.2,680.1,608.6,680.1z"/>
+                             <path id="shoulder-l-back" class="body-part" d="M636.8,386.7l-46.6-56.6c-6.8-8.3-17.7-10.8-27.1-6.4l-42.3,19.9l-22,23.1l22,23.1l42.3,19.9c9.4,4.4,20.3,1.9,27.1-6.4l46.6-56.6c6.8-8.3,11.3-17.2,12.3-26.6C648.1,403.9,643.6,395,636.8,386.7z"/>
+                             <path id="shoulder-r-back" class="body-part" d="M354.7,386.7l46.6-56.6c6.8-8.3,17.7-10.8,27.1-6.4l42.3,19.9l22,23.1l-22,23.1l-42.3,19.9c-9.4,4.4-20.3,1.9-27.1-6.4l-46.6-56.6c-6.8-8.3-11.3-17.2-12.3-26.6C343.4,403.9,347.9,395,354.7,386.7z"/>
+                             <path id="arm-l-back" class="body-part" d="M721.5,419.6L684,528.9l-45.7-12.2l37.5-109.3C700.1,402.1,721.5,419.6,721.5,419.6z"/>
+                             <path id="arm-r-back" class="body-part" d="M272.7,419.6L310.2,528.9l45.7-12.2l-37.5-109.3C294.1,402.1,272.7,419.6,272.7,419.6z"/>
+                             <path id="forearm-l-back" class="body-part" d="M721.5,564.3L684,673.6l-45.7-12.2l37.5-109.3C700.1,546.8,721.5,564.3,721.5,564.3z"/>
+                             <path id="forearm-r-back" class="body-part" d="M272.7,564.3L310.2,673.6l45.7-12.2l-37.5-109.3C294.1,546.8,272.7,564.3,272.7,564.3z"/>
+                             <path id="hand-l-back" class="body-part" d="M721.5,709L684,818.3l-45.7-12.2l37.5-109.3C700.1,691.5,721.5,709,721.5,709z"/>
+                             <path id="hand-r-back" class="body-part" d="M272.7,709L310.2,818.3l45.7-12.2l-37.5-109.3C294.1,691.5,272.7,709,272.7,709z"/>
+                             <path id="thigh-l-back" class="body-part" d="M570.8,806.8h-45.7c-15.6,0-28.2,12.6-28.2,28.2v114.7c0,15.6,12.6,28.2,28.2,28.2h45.7c15.6,0,28.2-12.6,28.2-28.2v-114.7C599,819.4,586.4,806.8,570.8,806.8z"/>
+                             <path id="thigh-r-back" class="body-part" d="M420.5,806.8h-45.7c-15.6,0-28.2,12.6-28.2,28.2v114.7c0,15.6,12.6,28.2,28.2,28.2h45.7c15.6,0,28.2-12.6,28.2-28.2v-114.7C448.7,819.4,436.1,806.8,420.5,806.8z"/>
+                             <path id="knee-l-back" class="body-part" d="M570.8,974.7h-45.7c-15.6,0-28.2,12.6-28.2,28.2v29.4h56.4v-29.4C599,987.3,586.4,974.7,570.8,974.7z"/>
+                             <path id="knee-r-back" class="body-part" d="M420.5,974.7h-45.7c-15.6,0-28.2,12.6-28.2,28.2v29.4h56.4v-29.4C448.7,987.3,436.1,974.7,420.5,974.7z"/>
+                             <path id="calf-l-back" class="body-part" d="M570.8,1033.4h-45.7c-15.6,0-28.2,12.6-28.2,28.2v114.7c0,15.6,12.6,28.2,28.2,28.2h45.7c15.6,0,28.2-12.6,28.2-28.2v-114.7C599,1046,586.4,1033.4,570.8,1033.4z"/>
+                             <path id="calf-r-back" class="body-part" d="M420.5,1033.4h-45.7c-15.6,0-28.2,12.6-28.2,28.2v114.7c0,15.6,12.6,28.2,28.2,28.2h45.7c15.6,0,28.2-12.6,28.2-28.2v-114.7C448.7,1046,436.1,1033.4,420.5,1033.4z"/>
+                             <path id="ankle-l-back" class="body-part" d="M570.8,1191.3h-45.7c-15.6,0-28.2,12.6-28.2,28.2v29.4h56.4v-29.4C599,1203.9,586.4,1191.3,570.8,1191.3z"/>
+                             <path id="ankle-r-back" class="body-part" d="M420.5,1191.3h-45.7c-15.6,0-28.2,12.6-28.2,28.2v29.4h56.4v-29.4C448.7,1203.9,436.1,1191.3,420.5,1191.3z"/>
+                             <path id="foot-l-back" class="body-part" d="M570.8,1250h-45.7c-15.6,0-28.2,12.6-28.2,28.2v29.4h56.4v-29.4C599,1262.6,586.4,1250,570.8,1250z"/>
+                             <path id="foot-r-back" class="body-part" d="M420.5,1250h-45.7c-15.6,0-28.2,12.6-28.2,28.2v29.4h56.4v-29.4C448.7,1262.6,436.1,1250,420.5,1250z"/>
+                        </g>
+                    </svg>
+                </div>
+                 <div class="w-full output-box-container relative">
+                    <div id="tipOutput" class="p-6 text-gray-700 bg-gray-50 rounded-xl shadow-inner min-h-[200px] flex items-center justify-center transition-all duration-300">
+                        <p class="text-center">${getTranslation('genericPainTip')}</p>
                     </div>
-                    <div class="mt-8">
-                        <div id="aiTip" class="bg-gray-100 p-6 rounded-lg whitespace-pre-wrap leading-relaxed text-gray-800">
-                            ${getTranslation('genericPainTip')}
-                        </div>
-                        <button id="speakTipBtn" class="mt-4 bg-blue-500 text-white font-bold py-2 px-6 rounded-full shadow-lg hover:bg-blue-600 transition-colors">
-                            🔊 ${getTranslation('speakTip')}
+                     <div class="output-box-actions flex space-x-2">
+                         <button id="speakButton" class="bg-gray-200 text-gray-800 text-xl p-3 rounded-full shadow-md hover:bg-gray-300 transition-colors">
+                            <i class="fas fa-volume-up"></i>
+                        </button>
+                        <button id="copyButton" class="bg-gray-200 text-gray-800 text-xl p-3 rounded-full shadow-md hover:bg-gray-300 transition-colors">
+                            <i class="far fa-copy"></i>
                         </button>
                     </div>
                 </div>
             </div>
         `;
-        document.querySelectorAll('.body-part').forEach(part => {
-            part.addEventListener('click', (e) => {
-                const partId = e.target.id;
-                const partName = painMapPartNames[partId][currentLang];
-                
-                // Toggle the 'pain' class on the SVG path
-                e.target.classList.toggle('pain');
+        const frontViewBtn = document.getElementById('frontViewBtn');
+        const backViewBtn = document.getElementById('backViewBtn');
+        const frontViewSvg = document.getElementById('front-view');
+        const backViewSvg = document.getElementById('back-view');
+        const svgElement = document.getElementById('painMapSvg');
+        const outputElement = document.getElementById('tipOutput');
+        const speakButton = document.getElementById('speakButton');
+        const copyButton = document.getElementById('copyButton');
 
-                if (e.target.classList.contains('pain')) {
-                    // Get tips for the selected body part
-                    getAiTipFromPrompt(`Provide pain relief tips for the ${partName}.`, 'aiTip');
-                } else {
-                    // Reset tip and speak button if deselected
-                    document.getElementById('aiTip').textContent = getTranslation('genericPainTip');
-                    if (isSpeaking) {
-                        synth.cancel();
-                        isSpeaking = false;
-                        document.getElementById('speakTipBtn').textContent = '🔊';
-                    }
-                }
-            });
+        frontViewBtn.addEventListener('click', () => {
+            isFrontView = true;
+            frontViewSvg.style.display = 'block';
+            backViewSvg.style.display = 'none';
+            frontViewBtn.classList.remove('bg-gray-300', 'text-gray-800');
+            frontViewBtn.classList.add('bg-blue-500', 'text-white');
+            backViewBtn.classList.remove('bg-blue-500', 'text-white');
+            backViewBtn.classList.add('bg-gray-300', 'text-gray-800');
         });
-        document.getElementById('speakTipBtn').addEventListener('click', () => {
-            const textToSpeak = document.getElementById('aiTip').textContent;
-            toggleSpeak(textToSpeak, 'speakTipBtn');
+
+        backViewBtn.addEventListener('click', () => {
+            isFrontView = false;
+            frontViewSvg.style.display = 'none';
+            backViewSvg.style.display = 'block';
+            backViewBtn.classList.remove('bg-gray-300', 'text-gray-800');
+            backViewBtn.classList.add('bg-blue-500', 'text-white');
+            frontViewBtn.classList.remove('bg-blue-500', 'text-white');
+            frontViewBtn.classList.add('bg-gray-300', 'text-gray-800');
+        });
+
+        svgElement.addEventListener('click', (event) => {
+            const target = event.target;
+            if (target.classList.contains('body-part')) {
+                const partId = target.id;
+                const partName = painMapPartNames[partId][currentLang] || partId;
+                const prompt = `${getTranslation('painPromptPrefix')} ${partName}. Provide tips in a step-by-step numbered list.`;
+
+                // Toggle pain state
+                if (painMapState[partId]) {
+                    delete painMapState[partId];
+                    target.classList.remove('pain');
+                } else {
+                    painMapState[partId] = true;
+                    target.classList.add('pain');
+                    getAiTipFromPrompt(prompt, 'tipOutput');
+                }
+                
+                // If no parts are selected, reset output
+                if (Object.keys(painMapState).length === 0) {
+                     outputElement.innerHTML = `<p class="text-center">${getTranslation('genericPainTip')}</p>`;
+                }
+            }
+        });
+         speakButton.addEventListener('click', () => {
+            const textToSpeak = outputElement.innerText;
+            toggleSpeak(textToSpeak, speakButton);
+        });
+
+        copyButton.addEventListener('click', () => {
+            const textToCopy = outputElement.innerText;
+            if (textToCopy && textToCopy !== getTranslation('genericPainTip')) {
+                const textarea = document.createElement('textarea');
+                textarea.value = textToCopy;
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    document.execCommand('copy');
+                    showMessageBox('உதவிக்குறிப்பு நகலெடுக்கப்பட்டது!');
+                } catch (err) {
+                    console.error('Failed to copy text: ', err);
+                    showMessageBox('நகலெடுப்பதில் சிக்கல் ஏற்பட்டது.');
+                }
+                document.body.removeChild(textarea);
+            }
         });
     };
 
+    // Renders the first aid page
     const renderFirstAidPage = () => {
         appContainer.innerHTML = `
-            <div class="min-h-screen flex flex-col items-center p-8 bg-gray-100 text-gray-800">
-                <div class="max-w-2xl w-full bg-white rounded-2xl shadow-2xl p-8 relative">
-                    <h1 class="text-4xl font-extrabold mb-4 text-center"><span class="mr-2">⛑️</span>${getTranslation('firstAid')}</h1>
-                    <p class="text-center mb-4">${getTranslation('firstAidPrompt')}</p>
-                    <div class="flex flex-col space-y-4">
-                        <div class="flex items-center space-x-2">
-                            <input type="text" id="firstAidInput" placeholder="காயங்கள், தீக்காயங்கள், எலும்பு முறிவு..." class="flex-grow p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400">
-                            <button id="firstAidMicBtn" class="text-xl text-gray-600 hover:text-blue-500 transition-colors p-2" data-input-id="firstAidInput">🎤</button>
-                        </div>
-                        <button id="getFirstAidBtn" class="bg-green-500 text-white font-bold p-3 rounded-lg shadow-md hover:bg-green-600 transition-colors">${getTranslation('getTip')}</button>
+            <div class="w-full max-w-4xl p-4 md:p-8 flex flex-col items-center">
+                <h1 class="text-3xl font-extrabold text-center text-gray-800 mb-6">${getTranslation('firstAid')}</h1>
+                <p class="text-center text-gray-600 mb-4">${getTranslation('firstAidPrompt')}</p>
+                 <div class="w-full flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 mb-6">
+                    <input type="text" id="emergencyInput" placeholder="காயங்கள், அவசர நிலை..." class="flex-grow p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow text-lg">
+                    <button id="micButton" class="bg-gray-200 text-gray-800 text-xl p-4 rounded-xl shadow-md hover:bg-gray-300 transition-colors flex items-center justify-center w-full md:w-auto">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                    <button id="getEmergencyTipBtn" class="bg-indigo-600 text-white font-semibold p-4 rounded-xl shadow-md hover:bg-indigo-700 transition-colors w-full md:w-auto">
+                         <i class="fa fa-search"></i>
+                    </button>
+                </div>
+                <div class="w-full output-box-container relative">
+                    <div id="tipOutput" class="p-6 text-gray-700 bg-gray-50 rounded-xl shadow-inner min-h-[200px] flex items-center justify-center transition-all duration-300">
+                        <p class="text-center">${getTranslation('yourTipHere')}</p>
                     </div>
-                    <div class="mt-8">
-                        <h2 class="text-2xl font-bold mb-4">${getTranslation('aiTipTitle')}</h2>
-                        <div id="aiTip" class="bg-gray-100 p-6 rounded-lg whitespace-pre-wrap leading-relaxed text-gray-800">
-                            ${getTranslation('yourTipHere')}
-                        </div>
-                        <button id="speakTipBtn" class="mt-4 bg-blue-500 text-white font-bold py-2 px-6 rounded-full shadow-lg hover:bg-blue-600 transition-colors">
-                            🔊 ${getTranslation('speakTip')}
+                     <div class="output-box-actions flex space-x-2">
+                         <button id="speakButton" class="bg-gray-200 text-gray-800 text-xl p-3 rounded-full shadow-md hover:bg-gray-300 transition-colors">
+                            <i class="fas fa-volume-up"></i>
                         </button>
-                    </div>
-                    <div class="mt-8">
-                        <h2 class="text-2xl font-bold mb-4">${getTranslation('emergencyContacts')}</h2>
-                        <ul id="contactsList" class="space-y-4">
-                            ${emergencyContacts.map(contact => `<li class="p-4 bg-gray-100 rounded-lg shadow-inner">${contact}</li>`).join('')}
-                            ${emergencyContacts.length === 0 ? `<li class="p-4 text-gray-500">${getTranslation('noContacts')}</li>` : ''}
-                        </ul>
-                        <div class="mt-4 flex flex-col space-y-2">
-                            <input type="text" id="newContact" placeholder="தொடர்பு பெயர் மற்றும் எண்..." class="p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400">
-                            <button id="addContactBtn" class="bg-gray-400 text-white font-bold p-3 rounded-lg shadow-md hover:bg-gray-500 transition-colors">${getTranslation('addContact')}</button>
-                        </div>
+                        <button id="copyButton" class="bg-gray-200 text-gray-800 text-xl p-3 rounded-full shadow-md hover:bg-gray-300 transition-colors">
+                            <i class="far fa-copy"></i>
+                        </button>
                     </div>
                 </div>
             </div>
         `;
-        document.getElementById('getFirstAidBtn').addEventListener('click', () => {
-            const symptomInput = document.getElementById('firstAidInput').value;
-            if (symptomInput) {
-                getAiTipFromPrompt(`Provide first aid tips for a person with the following condition: ${symptomInput}.`, 'aiTip');
+        const getEmergencyTipBtn = document.getElementById('getEmergencyTipBtn');
+        const emergencyInput = document.getElementById('emergencyInput');
+        const outputElement = document.getElementById('tipOutput');
+        const micButton = document.getElementById('micButton');
+        const speakButton = document.getElementById('speakButton');
+        const copyButton = document.getElementById('copyButton');
+
+        getEmergencyTipBtn.addEventListener('click', () => {
+            const prompt = emergencyInput.value;
+            if (prompt.trim() !== '') {
+                 const finalPrompt = `${getTranslation('emergencyTip')} for "${prompt}". Provide step-by-step instructions.`;
+                getAiTipFromPrompt(finalPrompt, 'tipOutput');
             } else {
-                showMessageBox('அவசர கால உதவிக்கு ஒரு நிலையை உள்ளிடவும்.');
+                showMessageBox('Please enter an emergency situation to get tips.');
             }
         });
-        document.getElementById('firstAidMicBtn').addEventListener('click', () => toggleSpeechRecognition('firstAidInput'));
-        document.getElementById('speakTipBtn').addEventListener('click', () => {
-            const textToSpeak = document.getElementById('aiTip').textContent;
-            toggleSpeak(textToSpeak, 'speakTipBtn');
-        });
-        document.getElementById('addContactBtn').addEventListener('click', () => {
-            const newContact = document.getElementById('newContact').value;
-            if (newContact) {
-                emergencyContacts.push(newContact);
-                renderFirstAidPage();
-            } else {
-                showMessageBox('தொடர்பு பெயரை மற்றும் எண்ணை உள்ளிடவும்.');
+
+        emergencyInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                getEmergencyTipBtn.click();
             }
         });
+
+        micButton.addEventListener('click', () => {
+            toggleSpeechRecognition('emergencyInput', micButton);
+        });
+
+        speakButton.addEventListener('click', () => {
+            const textToSpeak = outputElement.innerText;
+            toggleSpeak(textToSpeak, speakButton);
+        });
+
+        copyButton.addEventListener('click', () => {
+            const textToCopy = outputElement.innerText;
+            if (textToCopy && textToCopy !== getTranslation('yourTipHere')) {
+                const textarea = document.createElement('textarea');
+                textarea.value = textToCopy;
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    document.execCommand('copy');
+                    showMessageBox('உதவிக்குறிப்பு நகலெடுக்கப்பட்டது!');
+                } catch (err) {
+                    console.error('Failed to copy text: ', err);
+                    showMessageBox('நகலெடுப்பதில் சிக்கல் ஏற்பட்டது.');
+                }
+                document.body.removeChild(textarea);
+            }
+        });
+        
     };
-    
-    // Renders the AI Tips page for various categories
-    const renderAiTipsPage = (title, placeholderText, feature) => {
+
+    // Renders the mood journal page
+    const renderMoodJournalPage = () => {
         appContainer.innerHTML = `
-            <div class="min-h-screen flex flex-col items-center p-8 bg-gray-100 text-gray-800">
-                <div class="max-w-2xl w-full bg-white rounded-2xl shadow-2xl p-8 relative">
-                    <h1 class="text-4xl font-extrabold mb-4 text-center">${title}</h1>
-                    <p class="text-center mb-4">${placeholderText}</p>
-                    <div class="flex flex-col space-y-4">
-                        <div class="flex items-center space-x-2">
-                            <input type="text" id="tipInput" placeholder="${placeholderText}" class="flex-grow p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400">
-                            <button id="tipMicBtn" class="text-xl text-gray-600 hover:text-blue-500 transition-colors p-2" data-input-id="tipInput">🎤</button>
-                        </div>
-                        <button id="getTipBtn" class="bg-green-500 text-white font-bold p-3 rounded-lg shadow-md hover:bg-green-600 transition-colors">${getTranslation('getTip')}</button>
-                    </div>
-                    <div class="mt-8">
-                        <h2 class="text-2xl font-bold mb-4">${getTranslation('aiTipTitle')}</h2>
-                        <div id="aiTip" class="bg-gray-100 p-6 rounded-lg whitespace-pre-wrap leading-relaxed text-gray-800">
-                            ${getTranslation('yourTipHere')}
-                        </div>
-                        <button id="speakTipBtn" class="mt-4 bg-blue-500 text-white font-bold py-2 px-6 rounded-full shadow-lg hover:bg-blue-600 transition-colors">
-                            🔊 ${getTranslation('speakTip')}
-                        </button>
+            <div class="w-full max-w-4xl p-4 md:p-8 flex flex-col items-center">
+                <h1 class="text-3xl font-extrabold text-center text-gray-800 mb-6">${getTranslation('moodJournal')}</h1>
+                <p class="text-center text-gray-600 mb-4">${getTranslation('journalPrompt')}</p>
+                <div class="w-full flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 mb-6">
+                    <textarea id="journalInput" placeholder="${getTranslation('yourEntries')}" class="flex-grow p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow text-lg min-h-[100px]"></textarea>
+                    <select id="moodSelect" class="p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow text-lg">
+                        <option value="">${getTranslation('moodSelect')}</option>
+                        <option value="happy">${getTranslation('moodHappy')}</option>
+                        <option value="sad">${getTranslation('moodSad')}</option>
+                        <option value="normal">${getTranslation('moodNormal')}</option>
+                        <option value="anxious">${getTranslation('moodAnxious')}</option>
+                        <option value="grateful">${getTranslation('moodGrateful')}</option>
+                    </select>
+                </div>
+                <div class="flex space-x-4 mb-6">
+                    <button id="saveEntryBtn" class="bg-indigo-600 text-white font-semibold py-3 px-6 rounded-full shadow-md hover:bg-indigo-700 transition-colors">
+                        ${getTranslation('saveEntry')}
+                    </button>
+                </div>
+                <div class="w-full output-box-container relative">
+                    <div id="journalOutput" class="p-6 text-gray-700 bg-gray-50 rounded-xl shadow-inner min-h-[200px] flex items-center justify-center transition-all duration-300">
+                        <p class="text-center">${getTranslation('entriesPlaceholder')}</p>
                     </div>
                 </div>
             </div>
         `;
+        const saveEntryBtn = document.getElementById('saveEntryBtn');
+        const journalInput = document.getElementById('journalInput');
+        const moodSelect = document.getElementById('moodSelect');
+        const journalOutput = document.getElementById('journalOutput');
 
-        document.getElementById('getTipBtn').addEventListener('click', () => {
-            const input = document.getElementById('tipInput').value;
-            let prompt = '';
-            switch(feature) {
-                case 'generalTips': prompt = `Provide general health tips for: ${input}`; break;
-                case 'localTips': prompt = `Provide local health tips for: ${input}`; break;
-                case 'beautyTips': prompt = `Provide home beauty tips for: ${input}`; break;
-                case 'symptomFinder': prompt = `Provide information about the following symptoms: ${input}`; break;
-                case 'foodPlan': prompt = `Provide a food plan for the following diet, health issue, or allergy: ${input}`; break;
-                case 'exerciseYoga': prompt = `Provide exercise or yoga tips for: ${input}`; break;
-                default: prompt = input;
+        const displayEntries = () => {
+            if (moodEntries.length === 0) {
+                journalOutput.innerHTML = `<p class="text-center">${getTranslation('entriesPlaceholder')}</p>`;
+                return;
             }
-            getAiTipFromPrompt(prompt, 'aiTip');
-        });
-        document.getElementById('tipMicBtn').addEventListener('click', () => toggleSpeechRecognition('tipInput'));
-        document.getElementById('speakTipBtn').addEventListener('click', () => {
-            const textToSpeak = document.getElementById('aiTip').textContent;
-            toggleSpeak(textToSpeak, 'speakTipBtn');
-        });
-    };
-    
-    // Initial render
-    render();
+            const entriesHtml = moodEntries.map((entry, index) => `
+                <div class="bg-white p-4 rounded-xl shadow-sm mb-4">
+                    <div class="flex justify-between items-center mb-2">
+                         <span class="font-bold text-lg text-indigo-600">${entry.date}</span>
+                         <span class="text-sm font-medium text-gray-500">${getTranslation(`mood${entry.mood.charAt(0).toUpperCase() + entry.mood.slice(1)}`)}</span>
+                    </div>
+                    <p class="text-gray-700">${entry.text}</p>
+                </div>
+            `).join('');
+            journalOutput.innerHTML = entriesHtml;
+        };
 
+        saveEntryBtn.addEventListener('click', () => {
+            const entryText = journalInput.value.trim();
+            const mood = moodSelect.value;
+            if (entryText && mood) {
+                const newEntry = {
+                    date: new Date().toLocaleDateString(currentLang === 'ta' ? 'ta-IN' : 'en-US'),
+                    text: entryText,
+                    mood: mood
+                };
+                moodEntries.push(newEntry);
+                journalInput.value = '';
+                moodSelect.value = '';
+                displayEntries();
+            } else {
+                showMessageBox('Please enter both a journal entry and select a mood.');
+            }
+        });
+        displayEntries();
+    };
+
+    // Initialize the app
+    window.navigateTo = navigateTo; // Make it globally accessible for onclick events
+    render();
 </script>
+
 </body>
 </html>
