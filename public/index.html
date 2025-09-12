@@ -8,8 +8,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
         body {
             font-family: 'Noto Sans Tamil', sans-serif;
+            background: linear-gradient(135deg, #f0f4f8, #c1c1c1);
+            animation: fadeIn 0.8s ease-in-out;
             transition: background-color 0.5s ease;
         }
         .pain-map-svg .body-part:hover {
@@ -72,6 +78,17 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        .feature-card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            cursor: pointer;
+        }
+        .feature-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+        }
+        .login-card {
+            background: linear-gradient(180deg, #ffffff, #f9fafb);
+        }
     </style>
 </head>
 <body class="bg-gray-100 antialiased text-gray-800">
@@ -90,7 +107,7 @@
 </div>
 
 <script type="module">
-    // மொழிபெயர்ப்புகள்
+    // Language translations
     const translations = {
         'ta': {
             loginTitle: '🔒உள்நுழைக',
@@ -250,7 +267,7 @@
         }
     };
     
-    // புதுப்பிக்கப்பட்ட அம்சங்கள் பட்டியல்
+    // Updated list of features with colors
     const features = [
         { id: 'stepTracker', icon: 'fa-walking', titleKey: 'stepTracker', color: 'bg-green-500' },
         { id: 'generalTips', icon: 'fa-lightbulb', titleKey: 'generalTips', color: 'bg-yellow-500' },
@@ -269,8 +286,8 @@
     const painMapPartNames = {
         'head-front': { ta: 'தலை', en: 'head' },
         'neck-front': { ta: 'கழுத்து', en: 'neck' },
-        'chest': { ta: 'மார்பு', en: 'chest' },
-        'stomach': { ta: 'வயிறு', en: 'stomach' },
+        'chest-front': { ta: 'மார்பு', en: 'chest' },
+        'stomach-front': { ta: 'வயிறு', en: 'stomach' },
         'shoulder-r-front': { ta: 'வலது தோள்பட்டை', en: 'right shoulder' },
         'shoulder-l-front': { ta: 'இடது தோள்பட்டை', en: 'left shoulder' },
         'arm-r-front': { ta: 'வலது கை', en: 'right arm' },
@@ -292,12 +309,11 @@
         'ankle-l-front': { ta: 'இடது கணுக்கால்', en: 'left ankle' },
         'foot-r-front': { ta: 'வலது பாதம்', en: 'right foot' },
         'foot-l-front': { ta: 'இடது பாதம்', en: 'left foot' },
-
         // Back View
         'head-back': { ta: 'தலை', en: 'head' },
         'neck-back': { ta: 'கழுத்து', en: 'neck' },
-        'back': { ta: 'முதுகு', en: 'back' },
-        'buttocks': { ta: 'பிட்டம்', en: 'buttocks' },
+        'back-back': { ta: 'முதுகு', en: 'back' },
+        'buttocks-back': { ta: 'பிட்டம்', en: 'buttocks' },
         'shoulder-r-back': { ta: 'வலது தோள்பட்டை', en: 'right shoulder' },
         'shoulder-l-back': { ta: 'இடது தோள்பட்டை', en: 'left shoulder' },
         'arm-r-back': { ta: 'வலது கை', en: 'right arm' },
@@ -326,7 +342,7 @@
     let steps = 0;
     let isTracking = false;
     let lastAcceleration = { x: 0, y: 0, z: 0 };
-    const stepThreshold = 1.2; // Adjusted threshold for better step detection
+    const stepThreshold = 1.2;
     let stepCooldown = false;
     let cooldownTimer = null;
     let stepTrackerHandler = null;
@@ -472,13 +488,14 @@
 
     // Function to parse and format AI recipes
     const parseRecipe = (recipeText) => {
-        const [ingredientsPart, instructionsPart] = recipeText.split(getTranslation('instructionsTitle')).map(s => s.trim());
-        
+        const parts = recipeText.split(getTranslation('instructionsTitle'));
+        const ingredientsPart = parts[0].replace(getTranslation('ingredientsTitle'), '').trim();
+        const instructionsPart = parts[1] ? parts[1].trim() : '';
+
         let html = '';
         
         if (ingredientsPart) {
-            // Split ingredients and format them as a list
-            const ingredientsLines = ingredientsPart.replace(getTranslation('ingredientsTitle'), '').split('\n').filter(line => line.trim() !== '');
+            const ingredientsLines = ingredientsPart.split('\n').filter(line => line.trim() !== '');
             html += `<h3 class="text-xl font-bold mt-4 mb-2 text-gray-800">${getTranslation('ingredientsTitle')}</h3>`;
             html += '<ul class="list-disc list-inside space-y-1 text-left">';
             ingredientsLines.forEach(line => {
@@ -488,7 +505,6 @@
         }
         
         if (instructionsPart) {
-            // Split instructions and format them as a numbered list
             const instructionsLines = instructionsPart.split('\n').filter(line => line.trim() !== '');
             html += `<h3 class="text-xl font-bold mt-4 mb-2 text-gray-800">${getTranslation('instructionsTitle')}</h3>`;
             html += '<ol class="list-decimal list-inside space-y-2 text-left">';
@@ -517,7 +533,7 @@ Please provide a response in ${currentLang === 'ta' ? 'Tamil' : 'English'}. Form
             chatHistory.push({ role: "user", parts: [{ text: finalPrompt }] });
             const payload = { contents: chatHistory };
 
-            const apiKey = "AIzaSyBNO54-Ds6cEucn8aerq0ZLQZBNegFLsJY";
+            const apiKey = "";
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
             const response = await fetch(apiUrl, {
                 method: 'POST',
@@ -561,7 +577,7 @@ Please provide a response in ${currentLang === 'ta' ? 'Tamil' : 'English'}. Form
             chatHistory.push({ role: "user", parts: [{ text: recipePrompt }] });
             const payload = { contents: chatHistory };
 
-            const apiKey = "";
+            const apiKey = "AIzaSyBNO54-Ds6cEucn8aerq0ZLQZBNegFLsJY";
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
             const response = await fetch(apiUrl, {
                 method: 'POST',
@@ -667,43 +683,31 @@ Please provide a response in ${currentLang === 'ta' ? 'Tamil' : 'English'}. Form
                 <span class="ml-2 font-bold">${getTranslation('backToFeatures')}</span>
             </button>
             <button id="langToggleBottom" class="bg-gray-200 text-gray-800 text-xl p-3 rounded-full shadow-lg hover:bg-gray-300 transition-colors flex items-center justify-center">
-                <i class="fa fa-globe"></i>
+                <i class="fas fa-globe"></i>
             </button>
         `;
         bottomBar.classList.remove('hidden');
+
         document.getElementById('backButton').addEventListener('click', () => navigateTo('main'));
         document.getElementById('langToggleBottom').addEventListener('click', toggleLanguage);
     };
 
     const renderLoginPage = () => {
         appContainer.innerHTML = `
-            <div class="flex items-center justify-center min-h-screen bg-gradient-to-br from-green-500 to-blue-500 p-4">
-                <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm transform transition-transform hover:scale-105">
-                    <div class="flex justify-end mb-4">
-                        <button id="langToggleLogin" class="text-gray-600 hover:text-blue-500 transition-colors">
-                            <i class="fa fa-globe text-2xl"></i>
-                        </button>
-                    </div>
-                    <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">${getTranslation('loginTitle')}</h1>
-                    <form id="loginForm" class="space-y-6">
-                        <div class="relative">
-                            <i class="fas fa-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                            <input type="text" id="username" placeholder="${getTranslation('usernamePlaceholder')}" class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div class="relative">
-                            <i class="fas fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                            <input type="password" id="password" placeholder="${getTranslation('passwordPlaceholder')}" class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <button type="submit" class="w-full py-3 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700 transition-colors transform hover:scale-105">
-                            ${getTranslation('loginButton')}
-                        </button>
-                    </form>
-                </div>
+            <div class="login-card p-8 rounded-2xl shadow-2xl w-full max-w-sm transform transition-all duration-300 scale-95 hover:scale-100">
+                <h2 class="text-4xl font-extrabold mb-6 text-center text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">${getTranslation('loginTitle')}</h2>
+                <input id="username" type="text" placeholder="${getTranslation('usernamePlaceholder')}" class="w-full p-4 mb-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-purple-300 transition-colors">
+                <input id="password" type="password" placeholder="${getTranslation('passwordPlaceholder')}" class="w-full p-4 mb-6 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-purple-300 transition-colors">
+                <button id="loginButton" class="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-indigo-300">
+                    ${getTranslation('loginButton')}
+                </button>
+                <button id="langToggle" class="w-full mt-4 py-3 bg-gray-200 text-gray-800 font-semibold rounded-xl hover:bg-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400">
+                    <i class="fas fa-globe mr-2"></i> ${currentLang === 'ta' ? 'English' : 'தமிழ்'}
+                </button>
             </div>
         `;
 
-        document.getElementById('loginForm').addEventListener('submit', (e) => {
-            e.preventDefault();
+        document.getElementById('loginButton').addEventListener('click', () => {
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             if (username && password) {
@@ -712,605 +716,527 @@ Please provide a response in ${currentLang === 'ta' ? 'Tamil' : 'English'}. Form
                 showMessageBox(getTranslation('loginError'));
             }
         });
-
-        document.getElementById('langToggleLogin').addEventListener('click', toggleLanguage);
+        document.getElementById('langToggle').addEventListener('click', toggleLanguage);
     };
 
     const renderMainPage = () => {
         appContainer.innerHTML = `
-            <div class="flex flex-col items-center p-4 w-full">
-                <div class="flex w-full justify-between items-center mb-6">
-                    <h1 class="text-3xl font-bold text-gray-800">${getTranslation('allFeaturesTitle')}</h1>
-                    <button id="langToggleMain" class="text-gray-600 hover:text-blue-500 transition-colors">
-                        <i class="fa fa-globe text-2xl"></i>
+            <div class="w-full max-w-4xl p-6 md:p-10 bg-white rounded-3xl shadow-2xl">
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="text-3xl md:text-4xl font-bold text-gray-800">${getTranslation('allFeaturesTitle')}</h1>
+                    <button id="langToggleMain" class="p-3 bg-gray-200 text-gray-800 text-xl rounded-full shadow-md hover:bg-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400">
+                        <i class="fas fa-globe"></i>
                     </button>
                 </div>
-                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-6xl">
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
                     ${features.map(feature => `
-                        <button class="feature-button ${feature.color} text-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-transform hover:scale-105 flex flex-col items-center justify-center text-center space-y-2" data-id="${feature.id}">
-                            <i class="fas ${feature.icon} text-4xl"></i>
-                            <span class="text-sm font-semibold">${getTranslation(feature.titleKey)}</span>
-                        </button>
+                        <div class="feature-card flex flex-col items-center justify-center p-4 md:p-6 rounded-2xl shadow-md ${feature.color} text-white text-center">
+                            <i class="fas ${feature.icon} text-4xl mb-3"></i>
+                            <span class="text-sm md:text-base font-semibold">${getTranslation(feature.titleKey)}</span>
+                        </div>
                     `).join('')}
                 </div>
             </div>
         `;
-        document.getElementById('langToggleMain').addEventListener('click', toggleLanguage);
-        document.querySelectorAll('.feature-button').forEach(button => {
-            button.addEventListener('click', () => {
-                navigateTo(button.dataset.id);
+
+        features.forEach(feature => {
+            document.querySelector(`.feature-card:nth-child(${features.indexOf(feature) + 1})`).addEventListener('click', () => {
+                navigateTo(feature.id);
             });
         });
-    };
-
-    const renderSimplePage = (title, icon, content) => {
-        appContainer.innerHTML = `
-            <div class="flex flex-col items-center justify-center p-8 bg-white rounded-2xl shadow-xl max-w-md text-center">
-                <div class="text-4xl mb-4">${icon}</div>
-                <h1 class="text-2xl font-bold text-gray-800 mb-2">${title}</h1>
-                <p class="text-gray-600">${content}</p>
-            </div>
-        `;
-    };
-
-    const renderAiTipsPage = (title, placeholder, featureId) => {
-        appContainer.innerHTML = `
-            <div class="flex flex-col items-center w-full max-w-2xl p-4">
-                <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">${title}</h1>
-                <div class="w-full flex flex-col items-center space-y-4">
-                    <div class="w-full relative">
-                        <input type="text" id="aiInput" placeholder="${placeholder}" class="w-full pl-4 pr-16 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <button id="micButton" class="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 rounded-full text-white bg-blue-500 hover:bg-blue-600 transition-colors">
-                            <i class="fas fa-microphone"></i>
-                        </button>
-                    </div>
-                    <button id="submitTipBtn" class="w-full py-3 bg-indigo-600 text-white font-semibold rounded-full shadow-md hover:bg-indigo-700 transition-colors">
-                        ${getTranslation('getTip')}
-                    </button>
-                    <div class="output-box-container relative w-full">
-                        <div id="tipOutput" class="output-box">${getTranslation('yourTipHere')}</div>
-                        <div class="output-box-actions flex space-x-2">
-                            <button id="speakTipBtn" class="p-2 rounded-full text-gray-500 hover:text-indigo-600 transition-colors">
-                                <i class="fas fa-volume-up"></i>
-                            </button>
-                            <button id="copyTipBtn" class="p-2 rounded-full text-gray-500 hover:text-green-600 transition-colors">
-                                <i class="fas fa-copy"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        document.getElementById('submitTipBtn').addEventListener('click', () => {
-            const input = document.getElementById('aiInput').value.trim();
-            if (input) {
-                const prompt = `${title}: ${input}`;
-                getAiTipFromPrompt(prompt, 'tipOutput');
-            }
-        });
-        
-        document.getElementById('micButton').addEventListener('click', () => {
-            toggleSpeechRecognition('aiInput', document.getElementById('micButton'));
-        });
-        
-        document.getElementById('speakTipBtn').addEventListener('click', () => {
-            const text = document.getElementById('tipOutput').innerText;
-            toggleSpeak(text, document.getElementById('speakTipBtn'));
-        });
-
-        document.getElementById('copyTipBtn').addEventListener('click', () => {
-            const outputText = document.getElementById('tipOutput').innerText;
-            if (outputText && outputText !== getTranslation('yourTipHere')) {
-                // Use a fallback for navigator.clipboard.writeText
-                const textarea = document.createElement('textarea');
-                textarea.value = outputText;
-                document.body.appendChild(textarea);
-                textarea.select();
-                try {
-                    document.execCommand('copy');
-                    showMessageBox('உதவிக்குறிப்பு நகலெடுக்கப்பட்டது!');
-                } catch (err) {
-                    console.error('Failed to copy text:', err);
-                    showMessageBox('நகலெடுக்க முடியவில்லை.');
-                }
-                document.body.removeChild(textarea);
-            }
-        });
+        document.getElementById('langToggleMain').addEventListener('click', toggleLanguage);
     };
 
     const renderStepTrackerPage = () => {
         appContainer.innerHTML = `
-            <div class="flex flex-col items-center w-full max-w-md p-4 space-y-6">
-                <h1 class="text-3xl font-bold text-gray-800 text-center">${getTranslation('stepTracker')}</h1>
-                <div class="flex items-center justify-center p-8 bg-white rounded-full shadow-2xl w-48 h-48">
-                    <span id="stepCount" class="text-5xl font-extrabold text-blue-600">${steps}</span>
+            <div class="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl text-center">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">${getTranslation('stepTracker')}</h2>
+                <div class="flex items-center justify-center mb-6 text-5xl text-indigo-600">
+                    <i class="fas fa-walking mr-4"></i>
+                    <span id="stepCountDisplay" class="font-extrabold text-7xl">${steps}</span>
                 </div>
-                <p class="text-xl font-semibold">${getTranslation('stepsCount')}<span id="displaySteps">${steps}</span></p>
-                <div class="flex space-x-4 w-full">
-                    <button id="startStopBtn" class="flex-1 py-3 px-6 bg-green-600 text-white font-semibold rounded-full shadow-md hover:bg-green-700 transition-colors">
+                <p class="text-gray-600 mb-6">${getTranslation('stepMotivation')}</p>
+                <div class="space-y-4">
+                    <button id="startStopButton" class="w-full py-4 font-bold rounded-xl text-white shadow-lg transform transition-all duration-300 focus:outline-none focus:ring-4 ${isTracking ? 'bg-red-500 hover:bg-red-600 focus:ring-red-300' : 'bg-green-500 hover:bg-green-600 focus:ring-green-300'}">
                         ${isTracking ? getTranslation('stopTracking') : getTranslation('startTracking')}
                     </button>
-                    <button id="resetBtn" class="flex-1 py-3 px-6 bg-gray-400 text-white font-semibold rounded-full shadow-md hover:bg-gray-500 transition-colors">
+                    <button id="resetButton" class="w-full py-4 bg-gray-300 text-gray-800 font-bold rounded-xl shadow-md hover:bg-gray-400 transition-colors transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gray-500">
                         ${getTranslation('reset')}
                     </button>
                 </div>
-                <p class="text-center text-gray-500 text-sm mt-4">${getTranslation('stepMotivation')}</p>
             </div>
         `;
-        document.getElementById('startStopBtn').addEventListener('click', toggleStepTracking);
-        document.getElementById('resetBtn').addEventListener('click', resetSteps);
-        document.getElementById('displaySteps').textContent = steps;
-    };
-
-    const toggleStepTracking = () => {
-        const startStopBtn = document.getElementById('startStopBtn');
-        if (isTracking) {
-            window.removeEventListener('devicemotion', stepTrackerHandler);
-            isTracking = false;
-            startStopBtn.textContent = getTranslation('startTracking');
-            startStopBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
-            startStopBtn.classList.add('bg-green-600', 'hover:bg-green-700');
-        } else {
-            if (!window.DeviceMotionEvent) {
-                showMessageBox(getTranslation('motionSensorNotSupported'));
-                return;
-            }
-            if (typeof DeviceMotionEvent.requestPermission === 'function') {
-                DeviceMotionEvent.requestPermission().then(permissionState => {
-                    if (permissionState === 'granted') {
-                        startStepTracking();
-                    } else {
-                        showMessageBox('மோஷன் சென்சார் அனுமதி மறுக்கப்பட்டது.');
-                    }
-                }).catch(console.error);
+        
+        document.getElementById('startStopButton').addEventListener('click', () => {
+            if (isTracking) {
+                stopStepTracking();
             } else {
                 startStepTracking();
             }
+        });
+
+        document.getElementById('resetButton').addEventListener('click', () => {
+            steps = 0;
+            document.getElementById('stepCountDisplay').textContent = steps;
+        });
+    };
+
+    const startStepTracking = () => {
+        if (!isTracking) {
+            if ('ondevicemotion' in window) {
+                isTracking = true;
+                stepTrackerHandler = (event) => {
+                    const acceleration = event.accelerationIncludingGravity;
+                    const totalAcceleration = Math.sqrt(
+                        Math.pow(acceleration.x, 2) +
+                        Math.pow(acceleration.y, 2) +
+                        Math.pow(acceleration.z, 2)
+                    );
+                    
+                    if (totalAcceleration > stepThreshold && !stepCooldown) {
+                        steps++;
+                        document.getElementById('stepCountDisplay').textContent = steps;
+                        stepCooldown = true;
+                        cooldownTimer = setTimeout(() => {
+                            stepCooldown = false;
+                        }, 500); // Cooldown to prevent multiple steps from one motion
+                    }
+                };
+                window.addEventListener('devicemotion', stepTrackerHandler);
+                document.getElementById('startStopButton').textContent = getTranslation('stopTracking');
+                document.getElementById('startStopButton').classList.replace('bg-green-500', 'bg-red-500');
+                document.getElementById('startStopButton').classList.replace('focus:ring-green-300', 'focus:ring-red-300');
+            } else {
+                showMessageBox(getTranslation('motionSensorNotSupported'));
+            }
         }
     };
-    
-    const startStepTracking = () => {
-        const startStopBtn = document.getElementById('startStopBtn');
-        isTracking = true;
-        startStopBtn.textContent = getTranslation('stopTracking');
-        startStopBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
-        startStopBtn.classList.add('bg-red-600', 'hover:bg-red-700');
-        
-        stepTrackerHandler = (event) => {
-            const acceleration = event.accelerationIncludingGravity;
-            const currentAcceleration = {
-                x: acceleration.x,
-                y: acceleration.y,
-                z: acceleration.z
-            };
-            const deltaX = Math.abs(currentAcceleration.x - lastAcceleration.x);
-            const deltaY = Math.abs(currentAcceleration.y - lastAcceleration.y);
-            const deltaZ = Math.abs(currentAcceleration.z - lastAcceleration.z);
-            const totalDelta = Math.sqrt(deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ);
 
-            if (totalDelta > stepThreshold && !stepCooldown) {
-                steps++;
-                document.getElementById('displaySteps').textContent = steps;
-                stepCooldown = true;
-                clearTimeout(cooldownTimer);
-                cooldownTimer = setTimeout(() => {
-                    stepCooldown = false;
-                }, 500); // 500ms cooldown to prevent multiple steps from one movement
-            }
-            lastAcceleration = currentAcceleration;
-        };
-
-        window.addEventListener('devicemotion', stepTrackerHandler);
-    };
-
-    const resetSteps = () => {
-        steps = 0;
-        document.getElementById('displaySteps').textContent = steps;
+    const stopStepTracking = () => {
+        isTracking = false;
+        if (stepTrackerHandler) {
+            window.removeEventListener('devicemotion', stepTrackerHandler);
+        }
+        if (cooldownTimer) {
+            clearTimeout(cooldownTimer);
+        }
+        document.getElementById('startStopButton').textContent = getTranslation('startTracking');
+        document.getElementById('startStopButton').classList.replace('bg-red-500', 'bg-green-500');
+        document.getElementById('startStopButton').classList.replace('focus:ring-red-300', 'focus:ring-green-300');
     };
 
     const renderMoodJournalPage = () => {
         appContainer.innerHTML = `
-            <div class="flex flex-col items-center w-full max-w-2xl p-4">
-                <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">${getTranslation('moodJournal')}</h1>
-                <div class="w-full flex flex-col items-center space-y-4">
-                    <p class="text-gray-600 text-center">${getTranslation('journalPrompt')}</p>
-                    <div class="w-full relative">
-                        <select id="moodSelect" class="w-full py-3 px-4 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="">${getTranslation('moodSelect')}</option>
-                            <option value="Happy">${getTranslation('moodHappy')}</option>
-                            <option value="Sad">${getTranslation('moodSad')}</option>
-                            <option value="Normal">${getTranslation('moodNormal')}</option>
-                            <option value="Anxious">${getTranslation('moodAnxious')}</option>
-                            <option value="Grateful">${getTranslation('moodGrateful')}</option>
-                        </select>
-                    </div>
-                    <textarea id="gratitudeInput" rows="4" placeholder="${getTranslation('moodGrateful')}" class="w-full p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
-                    <button id="saveEntryBtn" class="w-full py-3 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700 transition-colors">
-                        ${getTranslation('saveEntry')}
-                    </button>
-                    <button id="analyzeMoodBtn" class="w-full py-3 bg-teal-600 text-white font-semibold rounded-full shadow-md hover:bg-teal-700 transition-colors">
-                        ${getTranslation('analyzeMood')}
-                    </button>
-
-                    <div id="moodAnalysisContainer" class="output-box w-full">
-                        <p class="text-gray-500">${getTranslation('moodAnalysisPlaceholder')}</p>
-                    </div>
-
-                    <h2 class="text-xl font-bold mt-8 mb-2">${getTranslation('yourEntries')}</h2>
-                    <div id="entriesList" class="w-full space-y-4">
+            <div class="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">${getTranslation('moodJournal')}</h2>
+                <div class="flex items-center justify-center mb-6">
+                    <i class="fas fa-book-open text-5xl text-sky-600"></i>
+                </div>
+                <p class="text-gray-600 mb-4 text-center">${getTranslation('journalPrompt')}</p>
+                <select id="moodSelect" class="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500">
+                    <option value="">${getTranslation('moodSelect')}</option>
+                    <option value="happy">${getTranslation('moodHappy')}</option>
+                    <option value="sad">${getTranslation('moodSad')}</option>
+                    <option value="normal">${getTranslation('moodNormal')}</option>
+                    <option value="anxious">${getTranslation('moodAnxious')}</option>
+                    <option value="grateful">${getTranslation('moodGrateful')}</option>
+                </select>
+                <textarea id="journalEntry" rows="4" placeholder="${getTranslation('entriesPlaceholder')}" class="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"></textarea>
+                <button id="saveEntryButton" class="w-full py-3 bg-sky-600 text-white font-bold rounded-xl shadow-lg hover:bg-sky-700 transition-colors transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-sky-300">
+                    ${getTranslation('saveEntry')}
+                </button>
+                <div class="mt-6">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center">${getTranslation('yourEntries')}</h3>
+                    <div id="entriesList" class="space-y-4 max-h-64 overflow-y-auto p-2 bg-gray-100 rounded-lg">
                         <p class="text-gray-500 text-center">${getTranslation('entriesPlaceholder')}</p>
                     </div>
                 </div>
             </div>
         `;
-
-        const saveEntryBtn = document.getElementById('saveEntryBtn');
-        const analyzeMoodBtn = document.getElementById('analyzeMoodBtn');
-        const moodSelect = document.getElementById('moodSelect');
-        const gratitudeInput = document.getElementById('gratitudeInput');
-
-        saveEntryBtn.addEventListener('click', () => {
-            const mood = moodSelect.value;
-            const gratitude = gratitudeInput.value.trim();
-            if (mood || gratitude) {
+        
+        const saveEntryButton = document.getElementById('saveEntryButton');
+        saveEntryButton.addEventListener('click', () => {
+            const mood = document.getElementById('moodSelect').value;
+            const entry = document.getElementById('journalEntry').value.trim();
+            if (mood && entry) {
                 const newEntry = {
-                    date: new Date().toLocaleDateString(currentLang === 'ta' ? 'ta-IN' : 'en-US'),
-                    mood: mood ? getTranslation(`mood${mood.charAt(0).toUpperCase() + mood.slice(1)}`) : '',
-                    gratitude: gratitude
+                    mood: mood,
+                    text: entry,
+                    date: new Date().toLocaleString()
                 };
-                moodEntries.push(newEntry);
-                moodSelect.value = '';
-                gratitudeInput.value = '';
-                renderMoodEntries();
-                showMessageBox('பதிவு சேமிக்கப்பட்டது!');
+                moodEntries.unshift(newEntry);
+                updateEntriesList();
+                document.getElementById('journalEntry').value = '';
+                document.getElementById('moodSelect').value = '';
             } else {
-                showMessageBox('மனநிலை அல்லது நன்றியுணர்வு பதிவை உள்ளிடவும்.');
+                showMessageBox('Please select a mood and write an entry.');
             }
         });
 
-        analyzeMoodBtn.addEventListener('click', () => {
-            if (moodEntries.length === 0) {
-                showMessageBox('பகுப்பாய்வு செய்ய பதிவுகள் இல்லை.');
-                return;
-            }
-            const allEntries = moodEntries.map(e => `${e.date}: ${e.mood ? `Mood: ${e.mood}, ` : ''}Gratitude: ${e.gratitude}`).join('\n');
-            const prompt = `Based on the following journal entries, provide a concise mood analysis in ${currentLang === 'ta' ? 'Tamil' : 'English'}. Look for patterns and trends.
-Entries:
-${allEntries}`;
-            getAiTipFromPrompt(prompt, 'moodAnalysisContainer');
-        });
-
-        const renderMoodEntries = () => {
+        const updateEntriesList = () => {
             const entriesList = document.getElementById('entriesList');
             entriesList.innerHTML = '';
-            if (moodEntries.length === 0) {
+            if (moodEntries.length > 0) {
+                moodEntries.forEach(entry => {
+                    const entryDiv = document.createElement('div');
+                    entryDiv.className = 'p-4 bg-white rounded-lg shadow-md';
+                    entryDiv.innerHTML = `
+                        <p class="text-sm text-gray-500">${entry.date}</p>
+                        <p class="font-bold text-lg text-gray-800">${getTranslation('mood' + entry.mood.charAt(0).toUpperCase() + entry.mood.slice(1))}</p>
+                        <p class="text-gray-700 mt-2">${entry.text}</p>
+                    `;
+                    entriesList.appendChild(entryDiv);
+                });
+            } else {
                 entriesList.innerHTML = `<p class="text-gray-500 text-center">${getTranslation('entriesPlaceholder')}</p>`;
-                return;
             }
-            moodEntries.forEach(entry => {
-                const entryDiv = document.createElement('div');
-                entryDiv.className = 'bg-white p-4 rounded-xl shadow-md';
-                entryDiv.innerHTML = `
-                    <p class="text-sm text-gray-400">${entry.date}</p>
-                    <p class="text-lg font-semibold">${entry.mood}</p>
-                    <p class="text-gray-700">${entry.gratitude}</p>
-                `;
-                entriesList.appendChild(entryDiv);
-            });
         };
-        renderMoodEntries();
+        updateEntriesList();
     };
 
-    const renderFoodRecipesPage = () => {
+    const renderAiTipsPage = (title, placeholder, featureId) => {
         appContainer.innerHTML = `
-            <div class="flex flex-col items-center w-full max-w-2xl p-4">
-                <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">${getTranslation('foodRecipes')}</h1>
-                <div class="w-full flex flex-col items-center space-y-4">
-                    <div class="w-full relative">
-                        <input type="text" id="recipeInput" placeholder="${getTranslation('inputPlaceholderRecipes')}" class="w-full pl-4 pr-16 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <button id="micButton" class="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 rounded-full text-white bg-blue-500 hover:bg-blue-600 transition-colors">
-                            <i class="fas fa-microphone"></i>
-                        </button>
-                    </div>
-                    <button id="getRecipeBtn" class="w-full py-3 bg-amber-600 text-white font-semibold rounded-full shadow-md hover:bg-amber-700 transition-colors">
-                        ${getTranslation('getRecipe')}
+            <div class="w-full max-w-2xl bg-white p-8 rounded-2xl shadow-xl text-center">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">${title}</h2>
+                <p class="text-gray-600 mb-4">${placeholder}</p>
+                <div class="flex items-center space-x-2 w-full mb-4">
+                    <input id="tipInput" type="text" placeholder="${placeholder}" class="flex-grow p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors">
+                    <button id="micButton" class="p-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-300">
+                        <i class="fas fa-microphone"></i>
                     </button>
-                    <div class="output-box-container relative w-full">
-                        <div id="recipeOutput" class="output-box text-left">
-                            <p class="text-gray-500">${getTranslation('noRecipe')}</p>
-                        </div>
-                        <div class="output-box-actions flex space-x-2">
-                            <button id="speakRecipeBtn" class="p-2 rounded-full text-gray-500 hover:text-amber-600 transition-colors">
-                                <i class="fas fa-volume-up"></i>
-                            </button>
-                            <button id="copyRecipeBtn" class="p-2 rounded-full text-gray-500 hover:text-green-600 transition-colors">
-                                <i class="fas fa-copy"></i>
-                            </button>
-                        </div>
+                    <button id="submitButton" class="p-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-300">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+                <div class="output-box-container mt-6">
+                    <div id="tipOutput" class="output-box">
+                        <p class="text-gray-500 text-center">${getTranslation('yourTipHere')}</p>
                     </div>
                 </div>
             </div>
         `;
-        document.getElementById('getRecipeBtn').addEventListener('click', () => {
-            const input = document.getElementById('recipeInput').value.trim();
-            if (input) {
-                getAiRecipeFromPrompt(input, 'recipeOutput');
+        
+        const tipInput = document.getElementById('tipInput');
+        const submitButton = document.getElementById('submitButton');
+        const micButton = document.getElementById('micButton');
+        const tipOutput = document.getElementById('tipOutput');
+        
+        submitButton.addEventListener('click', () => {
+            if (tipInput.value.trim()) {
+                const prompt = `Health tip for ${tipInput.value.trim()}`;
+                getAiTipFromPrompt(prompt, 'tipOutput');
+            } else {
+                showMessageBox('Please enter a query.');
             }
         });
-        document.getElementById('micButton').addEventListener('click', () => {
-            toggleSpeechRecognition('recipeInput', document.getElementById('micButton'));
+        
+        micButton.addEventListener('click', () => toggleSpeechRecognition('tipInput', micButton));
+    };
+
+    const renderFoodRecipesPage = () => {
+        appContainer.innerHTML = `
+            <div class="w-full max-w-2xl bg-white p-8 rounded-2xl shadow-xl text-center">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">${getTranslation('foodRecipes')}</h2>
+                <p class="text-gray-600 mb-4">${getTranslation('inputPlaceholderRecipes')}</p>
+                <div class="flex items-center space-x-2 w-full mb-4">
+                    <input id="recipeInput" type="text" placeholder="${getTranslation('inputPlaceholderRecipes')}" class="flex-grow p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors">
+                    <button id="micButton" class="p-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-300">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                    <button id="getRecipeButton" class="p-3 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-amber-300">
+                        <i class="fas fa-utensils"></i>
+                    </button>
+                </div>
+                <div class="output-box-container mt-6">
+                    <div id="recipeOutput" class="output-box">
+                        <p class="text-gray-500 text-center">${getTranslation('yourTipHere')}</p>
+                    </div>
+                    <button id="speakTipButton" class="absolute top-2 right-2 p-2 bg-gray-200 text-gray-800 rounded-full shadow-md hover:bg-gray-300 transition-colors hidden">
+                        <i class="fas fa-volume-up"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+
+        const recipeInput = document.getElementById('recipeInput');
+        const getRecipeButton = document.getElementById('getRecipeButton');
+        const micButton = document.getElementById('micButton');
+        const speakTipButton = document.getElementById('speakTipButton');
+        const recipeOutput = document.getElementById('recipeOutput');
+
+        getRecipeButton.addEventListener('click', () => {
+            if (recipeInput.value.trim()) {
+                getAiRecipeFromPrompt(recipeInput.value.trim(), 'recipeOutput');
+            } else {
+                showMessageBox('Please enter a food item or ingredients.');
+            }
         });
-        document.getElementById('speakRecipeBtn').addEventListener('click', () => {
-            const text = document.getElementById('recipeOutput').innerText;
-            toggleSpeak(text, document.getElementById('speakRecipeBtn'));
-        });
-        document.getElementById('copyRecipeBtn').addEventListener('click', () => {
-            const outputText = document.getElementById('recipeOutput').innerText;
-            if (outputText && outputText !== getTranslation('noRecipe')) {
-                const textarea = document.createElement('textarea');
-                textarea.value = outputText;
-                document.body.appendChild(textarea);
-                textarea.select();
-                try {
-                    document.execCommand('copy');
-                    showMessageBox('செய்முறை நகலெடுக்கப்பட்டது!');
-                } catch (err) {
-                    console.error('Failed to copy text:', err);
-                    showMessageBox('நகலெடுக்க முடியவில்லை.');
-                }
-                document.body.removeChild(textarea);
+
+        micButton.addEventListener('click', () => toggleSpeechRecognition('recipeInput', micButton));
+
+        speakTipButton.addEventListener('click', () => {
+            const text = recipeOutput.textContent || recipeOutput.innerText;
+            if (text) {
+                toggleSpeak(text, speakTipButton);
             }
         });
     };
 
     const renderBodyPainMapPage = () => {
         appContainer.innerHTML = `
-            <div class="flex flex-col items-center w-full max-w-2xl p-4">
-                <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">${getTranslation('bodyPainMap')}</h1>
-                <div class="w-full flex justify-center space-x-4 mb-4">
-                    <button id="viewFrontBtn" class="py-2 px-4 rounded-full font-semibold ${isFrontView ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800'}">
-                        ${getTranslation('viewFront')}
-                    </button>
-                    <button id="viewBackBtn" class="py-2 px-4 rounded-full font-semibold ${!isFrontView ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800'}">
-                        ${getTranslation('viewBack')}
+            <div class="w-full max-w-lg bg-white p-8 rounded-2xl shadow-xl text-center">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">${getTranslation('bodyPainMap')}</h2>
+                <div id="painMapContainer" class="pain-map-container mb-4">
+                    ${isFrontView ? getFrontBodyMapSVG() : getBackBodyMapSVG()}
+                </div>
+                <div class="flex justify-center items-center space-x-4 mb-6">
+                    <button id="toggleViewBtn" class="py-2 px-4 bg-gray-200 text-gray-800 rounded-full shadow-md hover:bg-gray-300 transition-colors">
+                        ${isFrontView ? getTranslation('viewBack') : getTranslation('viewFront')}
                     </button>
                 </div>
-                <div class="pain-map-container mb-6">
-                    ${isFrontView ? getFrontBodySVG() : getBackBodySVG()}
-                </div>
-                <p class="text-gray-600 text-center mb-4">${getTranslation('painMapTipInstructions')}</p>
-
-                <div class="output-box-container relative w-full">
+                <div class="output-box-container mt-6">
                     <div id="painTipOutput" class="output-box">
-                        <p class="text-gray-500">${getTranslation('genericPainTip')}</p>
-                    </div>
-                    <div class="output-box-actions flex space-x-2">
-                        <button id="speakPainTipBtn" class="p-2 rounded-full text-gray-500 hover:text-indigo-600 transition-colors">
-                            <i class="fas fa-volume-up"></i>
-                        </button>
-                        <button id="copyPainTipBtn" class="p-2 rounded-full text-gray-500 hover:text-green-600 transition-colors">
-                            <i class="fas fa-copy"></i>
-                        </button>
+                        <p class="text-gray-500 text-center">${getTranslation('genericPainTip')}</p>
                     </div>
                 </div>
             </div>
         `;
-        document.getElementById('viewFrontBtn').addEventListener('click', () => { isFrontView = true; render(); });
-        document.getElementById('viewBackBtn').addEventListener('click', () => { isFrontView = false; render(); });
-        document.querySelectorAll('.body-part').forEach(path => {
-            const partId = path.id;
-            if (painMapState[partId]) {
-                path.classList.add('pain');
-            }
-            path.addEventListener('click', () => {
-                if (painMapState[partId]) {
-                    delete painMapState[partId];
-                    path.classList.remove('pain');
-                    document.getElementById('painTipOutput').innerHTML = `<p class="text-gray-500">${getTranslation('genericPainTip')}</p>`;
-                } else {
-                    const partName = painMapPartNames[partId][currentLang];
-                    const prompt = `${getTranslation('painPromptPrefix')} ${partName}`;
-                    painMapState[partId] = true;
-                    path.classList.add('pain');
-                    getAiTipFromPrompt(prompt, 'painTipOutput');
-                }
+
+        const painMapContainer = document.getElementById('painMapContainer');
+        const toggleViewBtn = document.getElementById('toggleViewBtn');
+        const painTipOutput = document.getElementById('painTipOutput');
+        
+        const attachPainMapListeners = () => {
+            const bodyParts = document.querySelectorAll('.body-part');
+            bodyParts.forEach(part => {
+                const partId = part.id;
+                part.addEventListener('click', async () => {
+                    const painName = painMapPartNames[partId][currentLang] || partId;
+                    
+                    if (painMapState[partId]) {
+                        delete painMapState[partId];
+                        part.classList.remove('pain');
+                        painTipOutput.innerHTML = `<p class="text-gray-500 text-center">${getTranslation('genericPainTip')}</p>`;
+                    } else {
+                        painMapState[partId] = true;
+                        part.classList.add('pain');
+                        
+                        const prompt = `${getTranslation('painPromptPrefix')} ${painName}.`;
+                        painTipOutput.innerHTML = `<div class="loading-spinner"></div> <span class="ml-2">${getTranslation('loadingMessage')}</span>`;
+                        
+                        try {
+                            const chatHistory = [];
+                            chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                            const payload = { contents: chatHistory };
+
+                            const apiKey = "";
+                            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                            const response = await fetch(apiUrl, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(payload)
+                            });
+
+                            const result = await response.json();
+                            let tipText = getTranslation('yourTipHere');
+                            if (result.candidates && result.candidates.length > 0 &&
+                                result.candidates[0].content && result.candidates[0].content.parts &&
+                                result.candidates[0].content.parts.length > 0) {
+                                tipText = result.candidates[0].content.parts[0].text;
+                            } else {
+                                tipText = getTranslation('noRecipe');
+                            }
+                            painTipOutput.innerHTML = parseTipsAsList(tipText);
+
+                        } catch (error) {
+                            console.error('Error generating AI tip for pain map:', error);
+                            painTipOutput.innerHTML = `<p class="text-red-500 text-center">உதவிக்குறிப்பை உருவாக்க முடியவில்லை: ${error.message}</p>`;
+                        }
+                    }
+                });
             });
-        });
+        };
 
-        document.getElementById('speakPainTipBtn').addEventListener('click', () => {
-            const text = document.getElementById('painTipOutput').innerText;
-            toggleSpeak(text, document.getElementById('speakPainTipBtn'));
-        });
-        document.getElementById('copyPainTipBtn').addEventListener('click', () => {
-            const outputText = document.getElementById('painTipOutput').innerText;
-            if (outputText && outputText !== getTranslation('genericPainTip')) {
-                const textarea = document.createElement('textarea');
-                textarea.value = outputText;
-                document.body.appendChild(textarea);
-                textarea.select();
-                try {
-                    document.execCommand('copy');
-                    showMessageBox('உதவிக்குறிப்பு நகலெடுக்கப்பட்டது!');
-                } catch (err) {
-                    console.error('Failed to copy text:', err);
-                    showMessageBox('நகலெடுக்க முடியவில்லை.');
-                }
-                document.body.removeChild(textarea);
+        toggleViewBtn.addEventListener('click', () => {
+            isFrontView = !isFrontView;
+            if (isFrontView) {
+                painMapContainer.innerHTML = getFrontBodyMapSVG();
+                toggleViewBtn.textContent = getTranslation('viewBack');
+            } else {
+                painMapContainer.innerHTML = getBackBodyMapSVG();
+                toggleViewBtn.textContent = getTranslation('viewFront');
             }
+            attachPainMapListeners();
         });
-    };
-
-    const getFrontBodySVG = () => {
-        return `<svg class="pain-map-svg" viewBox="0 0 200 400" xmlns="http://www.w3.org/2000/svg" fill="#ccc">
-            <title>${getTranslation('viewFront')}</title>
-            <g id="front-view">
-                <path class="body-part" id="head-front" d="M100 20 C115 5, 130 15, 130 30 C130 45, 115 50, 100 50 C85 50, 70 45, 70 30 C70 15, 85 5, 100 20 Z" />
-                <rect class="body-part" id="neck-front" x="90" y="50" width="20" height="15" rx="5" />
-                <rect class="body-part" id="chest" x="80" y="65" width="40" height="50" rx="10" />
-                <rect class="body-part" id="stomach" x="80" y="115" width="40" height="40" rx="10" />
-                <path class="body-part" id="shoulder-r-front" d="M120 65 C140 60, 150 70, 150 85 C150 100, 140 110, 120 115 Z" />
-                <path class="body-part" id="shoulder-l-front" d="M80 65 C60 60, 50 70, 50 85 C50 100, 60 110, 80 115 Z" />
-                <rect class="body-part" id="arm-r-front" x="140" y="90" width="15" height="40" rx="5" />
-                <rect class="body-part" id="arm-l-front" x="45" y="90" width="15" height="40" rx="5" />
-                <rect class="body-part" id="elbow-r-front" x="140" y="130" width="15" height="15" rx="5" />
-                <rect class="body-part" id="elbow-l-front" x="45" y="130" width="15" height="15" rx="5" />
-                <rect class="body-part" id="forearm-r-front" x="140" y="145" width="15" height="40" rx="5" />
-                <rect class="body-part" id="forearm-l-front" x="45" y="145" width="15" height="40" rx="5" />
-                <circle class="body-part" id="hand-r-front" cx="147.5" cy="195" r="7.5" />
-                <circle class="body-part" id="hand-l-front" cx="52.5" cy="195" r="7.5" />
-                <rect class="body-part" id="waist-front" x="80" y="155" width="40" height="20" rx="5" />
-                <rect class="body-part" id="thigh-r-front" x="105" y="175" width="25" height="50" rx="5" />
-                <rect class="body-part" id="thigh-l-front" x="70" y="175" width="25" height="50" rx="5" />
-                <rect class="body-part" id="knee-r-front" x="105" y="225" width="25" height="15" rx="5" />
-                <rect class="body-part" id="knee-l-front" x="70" y="225" width="25" height="15" rx="5" />
-                <rect class="body-part" id="shin-r-front" x="105" y="240" width="25" height="50" rx="5" />
-                <rect class="body-part" id="shin-l-front" x="70" y="240" width="25" height="50" rx="5" />
-                <rect class="body-part" id="ankle-r-front" x="105" y="290" width="25" height="15" rx="5" />
-                <rect class="body-part" id="ankle-l-front" x="70" y="290" width="25" height="15" rx="5" />
-                <path class="body-part" id="foot-r-front" d="M105 305 L130 305 L135 315 L100 315 L105 305 Z" />
-                <path class="body-part" id="foot-l-front" d="M70 305 L95 305 L100 315 L65 315 L70 305 Z" />
-            </g>
-        </svg>`;
-    };
-
-    const getBackBodySVG = () => {
-        return `<svg class="pain-map-svg" viewBox="0 0 200 400" xmlns="http://www.w3.org/2000/svg" fill="#ccc">
-            <title>${getTranslation('viewBack')}</title>
-            <g id="back-view">
-                <path class="body-part" id="head-back" d="M100 20 C115 5, 130 15, 130 30 C130 45, 115 50, 100 50 C85 50, 70 45, 70 30 C70 15, 85 5, 100 20 Z" />
-                <rect class="body-part" id="neck-back" x="90" y="50" width="20" height="15" rx="5" />
-                <rect class="body-part" id="back" x="80" y="65" width="40" height="60" rx="10" />
-                <rect class="body-part" id="buttocks" x="80" y="125" width="40" height="25" rx="5" />
-                <path class="body-part" id="shoulder-r-back" d="M120 65 C140 60, 150 70, 150 85 C150 100, 140 110, 120 115 Z" />
-                <path class="body-part" id="shoulder-l-back" d="M80 65 C60 60, 50 70, 50 85 C50 100, 60 110, 80 115 Z" />
-                <rect class="body-part" id="arm-r-back" x="140" y="90" width="15" height="40" rx="5" />
-                <rect class="body-part" id="arm-l-back" x="45" y="90" width="15" height="40" rx="5" />
-                <rect class="body-part" id="elbow-r-back" x="140" y="130" width="15" height="15" rx="5" />
-                <rect class="body-part" id="elbow-l-back" x="45" y="130" width="15" height="15" rx="5" />
-                <rect class="body-part" id="forearm-r-back" x="140" y="145" width="15" height="40" rx="5" />
-                <rect class="body-part" id="forearm-l-back" x="45" y="145" width="15" height="40" rx="5" />
-                <circle class="body-part" id="hand-r-back" cx="147.5" cy="195" r="7.5" />
-                <circle class="body-part" id="hand-l-back" cx="52.5" cy="195" r="7.5" />
-                <rect class="body-part" id="waist-back" x="80" y="155" width="40" height="20" rx="5" />
-                <rect class="body-part" id="thigh-r-back" x="105" y="175" width="25" height="50" rx="5" />
-                <rect class="body-part" id="thigh-l-back" x="70" y="175" width="25" height="50" rx="5" />
-                <rect class="body-part" id="knee-r-back" x="105" y="225" width="25" height="15" rx="5" />
-                <rect class="body-part" id="knee-l-back" x="70" y="225" width="25" height="15" rx="5" />
-                <rect class="body-part" id="calf-r-back" x="105" y="240" width="25" height="50" rx="5" />
-                <rect class="body-part" id="calf-l-back" x="70" y="240" width="25" height="50" rx="5" />
-                <rect class="body-part" id="ankle-r-back" x="105" y="290" width="25" height="15" rx="5" />
-                <rect class="body-part" id="ankle-l-back" x="70" y="290" width="25" height="15" rx="5" />
-                <path class="body-part" id="foot-r-back" d="M105 305 L130 305 L135 315 L100 315 L105 305 Z" />
-                <path class="body-part" id="foot-l-back" d="M70 305 L95 305 L100 315 L65 315 L70 305 Z" />
-            </g>
-        </svg>`;
+        
+        attachPainMapListeners();
     };
     
     const renderFirstAidPage = () => {
         appContainer.innerHTML = `
-            <div class="flex flex-col items-center w-full max-w-2xl p-4">
-                <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">${getTranslation('firstAid')}</h1>
-                <div class="w-full flex flex-col items-center space-y-4">
-                    <p class="text-gray-600 text-center">${getTranslation('firstAidPrompt')}</p>
-                    <div class="w-full relative">
-                        <input type="text" id="emergencyInput" placeholder="${getTranslation('emergencyTip')}" class="w-full pl-4 pr-16 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <button id="micButton" class="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 rounded-full text-white bg-blue-500 hover:bg-blue-600 transition-colors">
-                            <i class="fas fa-microphone"></i>
-                        </button>
-                    </div>
-                    <button id="getEmergencyTipBtn" class="w-full py-3 bg-red-600 text-white font-semibold rounded-full shadow-md hover:bg-red-700 transition-colors">
-                        ${getTranslation('getTip')}
-                    </button>
-                    <div class="output-box-container relative w-full">
-                        <div id="emergencyOutput" class="output-box">
-                            <p class="text-gray-500">${getTranslation('yourTipHere')}</p>
-                        </div>
-                        <div class="output-box-actions flex space-x-2">
-                            <button id="speakEmergencyTipBtn" class="p-2 rounded-full text-gray-500 hover:text-red-600 transition-colors">
-                                <i class="fas fa-volume-up"></i>
-                            </button>
-                            <button id="copyEmergencyTipBtn" class="p-2 rounded-full text-gray-500 hover:text-green-600 transition-colors">
-                                <i class="fas fa-copy"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <h2 class="text-xl font-bold mt-8 mb-2">${getTranslation('emergencyContacts')}</h2>
-                    <div id="contactList" class="w-full space-y-4">
-                        <p class="text-gray-500 text-center">${getTranslation('noContacts')}</p>
-                    </div>
-                    <button id="addContactBtn" class="w-full py-3 bg-green-600 text-white font-semibold rounded-full shadow-md hover:bg-green-700 transition-colors">
-                        ${getTranslation('addContact')}
-                    </button>
+            <div class="w-full max-w-lg bg-white p-8 rounded-2xl shadow-xl">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">${getTranslation('firstAid')}</h2>
+                <div class="flex items-center justify-center mb-6">
+                    <i class="fas fa-hand-holding-medical text-5xl text-red-600"></i>
                 </div>
+                <p class="text-gray-600 mb-4 text-center">${getTranslation('firstAidPrompt')}</p>
+                <div class="output-box-container mt-6">
+                    <div id="firstAidTipOutput" class="output-box mb-4">
+                        <p class="text-gray-500 text-center">${getTranslation('emergencyTip')}</p>
+                    </div>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center mt-6">${getTranslation('emergencyContacts')}</h3>
+                <div id="contactsList" class="space-y-4 max-h-48 overflow-y-auto p-2 bg-gray-100 rounded-lg">
+                    <p class="text-gray-500 text-center">${getTranslation('noContacts')}</p>
+                </div>
+                <button id="addContactButton" class="w-full py-3 mt-4 bg-red-600 text-white font-bold rounded-xl shadow-lg hover:bg-red-700 transition-colors transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-red-300">
+                    <i class="fas fa-user-plus mr-2"></i> ${getTranslation('addContact')}
+                </button>
             </div>
         `;
-        document.getElementById('getEmergencyTipBtn').addEventListener('click', () => {
-            const input = document.getElementById('emergencyInput').value.trim();
-            if (input) {
-                getAiTipFromPrompt(`First Aid for: ${input}`, 'emergencyOutput');
+        
+        const updateContactsList = () => {
+            const contactsList = document.getElementById('contactsList');
+            contactsList.innerHTML = '';
+            if (emergencyContacts.length > 0) {
+                emergencyContacts.forEach((contact, index) => {
+                    const contactDiv = document.createElement('div');
+                    contactDiv.className = 'p-4 bg-white rounded-lg shadow-md flex items-center justify-between';
+                    contactDiv.innerHTML = `
+                        <div>
+                            <p class="font-bold text-lg text-gray-800">${contact.name}</p>
+                            <p class="text-gray-700">${contact.number}</p>
+                        </div>
+                        <button class="remove-contact-btn text-red-500 hover:text-red-700 transition-colors" data-index="${index}">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    `;
+                    contactsList.appendChild(contactDiv);
+                });
+
+                document.querySelectorAll('.remove-contact-btn').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const index = parseInt(e.currentTarget.dataset.index);
+                        emergencyContacts.splice(index, 1);
+                        updateContactsList();
+                    });
+                });
+            } else {
+                contactsList.innerHTML = `<p class="text-gray-500 text-center">${getTranslation('noContacts')}</p>`;
             }
-        });
-        document.getElementById('micButton').addEventListener('click', () => {
-            toggleSpeechRecognition('emergencyInput', document.getElementById('micButton'));
-        });
-        document.getElementById('speakEmergencyTipBtn').addEventListener('click', () => {
-            const text = document.getElementById('emergencyOutput').innerText;
-            toggleSpeak(text, document.getElementById('speakEmergencyTipBtn'));
-        });
-        document.getElementById('copyEmergencyTipBtn').addEventListener('click', () => {
-            const outputText = document.getElementById('emergencyOutput').innerText;
-            if (outputText && outputText !== getTranslation('yourTipHere')) {
-                const textarea = document.createElement('textarea');
-                textarea.value = outputText;
-                document.body.appendChild(textarea);
-                textarea.select();
-                try {
-                    document.execCommand('copy');
-                    showMessageBox('உதவிக்குறிப்பு நகலெடுக்கப்பட்டது!');
-                } catch (err) {
-                    console.error('Failed to copy text:', err);
-                    showMessageBox('நகலெடுக்க முடியவில்லை.');
-                }
-                document.body.removeChild(textarea);
-            }
-        });
-        document.getElementById('addContactBtn').addEventListener('click', () => {
-            const name = prompt("தொடர்பு பெயர்: (Contact Name:)");
-            const phone = prompt("தொலைபேசி எண்: (Phone Number:)");
-            if (name && phone) {
-                emergencyContacts.push({ name, phone });
-                renderEmergencyContacts();
-            }
-        });
-        const renderEmergencyContacts = () => {
-            const contactList = document.getElementById('contactList');
-            contactList.innerHTML = '';
-            if (emergencyContacts.length === 0) {
-                contactList.innerHTML = `<p class="text-gray-500 text-center">${getTranslation('noContacts')}</p>`;
-                return;
-            }
-            emergencyContacts.forEach(contact => {
-                const contactDiv = document.createElement('div');
-                contactDiv.className = 'bg-white p-4 rounded-xl shadow-md flex justify-between items-center';
-                contactDiv.innerHTML = `
-                    <div>
-                        <p class="text-lg font-semibold">${contact.name}</p>
-                        <p class="text-gray-600">${contact.phone}</p>
-                    </div>
-                    <a href="tel:${contact.phone}" class="bg-blue-500 text-white p-3 rounded-full hover:bg-blue-600 transition-colors">
-                        <i class="fas fa-phone"></i>
-                    </a>
-                `;
-                contactList.appendChild(contactDiv);
-            });
         };
-        renderEmergencyContacts();
+
+        document.getElementById('addContactButton').addEventListener('click', () => {
+            const name = prompt("தொடர்பின் பெயர்:");
+            const number = prompt("தொடர்பின் எண்:");
+            if (name && number) {
+                emergencyContacts.push({ name, number });
+                updateContactsList();
+            }
+        });
+        
+        updateContactsList();
     };
 
-    window.onload = render;
+    const getFrontBodyMapSVG = () => {
+        return `
+            <svg class="pain-map-svg" viewBox="0 0 500 800" xmlns="http://www.w3.org/2000/svg">
+                <g fill="#c4a58b" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <!-- Head -->
+                    <path class="body-part" id="head-front" d="M250 50 C280 50, 300 70, 300 100 C300 130, 280 150, 250 150 C220 150, 200 130, 200 100 C200 70, 220 50, 250 50 Z" />
+                    <!-- Neck -->
+                    <path class="body-part" id="neck-front" d="M240 150 L260 150 L260 170 L240 170 Z" />
+                    <!-- Chest -->
+                    <path class="body-part" id="chest-front" d="M250 170 C280 170, 300 210, 300 240 C300 270, 280 300, 250 300 C220 300, 200 270, 200 240 C200 210, 220 170, 250 170 Z" />
+                    <!-- Stomach -->
+                    <path class="body-part" id="stomach-front" d="M250 300 C280 300, 300 340, 300 370 C300 400, 280 430, 250 430 C220 430, 200 400, 200 370 C200 340, 220 300, 250 300 Z" />
+                    <!-- Shoulders -->
+                    <path class="body-part" id="shoulder-r-front" d="M300 170 C350 180, 370 200, 380 220 L370 240 L300 230 Z" />
+                    <path class="body-part" id="shoulder-l-front" d="M200 170 C150 180, 130 200, 120 220 L130 240 L200 230 Z" />
+                    <!-- Arms -->
+                    <path class="body-part" id="arm-r-front" d="M370 240 L380 340 C390 380, 410 400, 420 420 L400 440 L350 420 L340 320 Z" />
+                    <path class="body-part" id="arm-l-front" d="M130 240 L120 340 C110 380, 90 400, 80 420 L100 440 L150 420 L160 320 Z" />
+                    <!-- Elbows -->
+                    <circle class="body-part" id="elbow-r-front" cx="375" cy="320" r="10" />
+                    <circle class="body-part" id="elbow-l-front" cx="125" cy="320" r="10" />
+                    <!-- Forearms -->
+                    <path class="body-part" id="forearm-r-front" d="M375 320 C380 350, 390 400, 395 440 L405 440 C410 400, 400 350, 395 320 Z" />
+                    <path class="body-part" id="forearm-l-front" d="M125 320 C120 350, 110 400, 105 440 L95 440 C90 400, 100 350, 105 320 Z" />
+                    <!-- Hands -->
+                    <path class="body-part" id="hand-r-front" d="M395 440 L420 460 L410 480 L385 460 Z" />
+                    <path class="body-part" id="hand-l-front" d="M105 440 L80 460 L90 480 L115 460 Z" />
+                    <!-- Waist -->
+                    <path class="body-part" id="waist-front" d="M200 430 L300 430 L310 460 C320 490, 280 500, 250 500 C220 500, 180 490, 190 460 Z" />
+                    <!-- Thighs -->
+                    <path class="body-part" id="thigh-r-front" d="M250 500 L280 500 C300 520, 310 560, 300 600 C290 640, 270 660, 250 660 L250 500 Z" />
+                    <path class="body-part" id="thigh-l-front" d="M250 500 L220 500 C200 520, 190 560, 200 600 C210 640, 230 660, 250 660 L250 500 Z" />
+                    <!-- Knees -->
+                    <circle class="body-part" id="knee-r-front" cx="280" cy="620" r="10" />
+                    <circle class="body-part" id="knee-l-front" cx="220" cy="620" r="10" />
+                    <!-- Shins -->
+                    <path class="body-part" id="shin-r-front" d="M280 620 L280 720 C280 740, 270 760, 260 760 L250 720 L250 620 Z" />
+                    <path class="body-part" id="shin-l-front" d="M220 620 L220 720 C220 740, 230 760, 240 760 L250 720 L250 620 Z" />
+                    <!-- Ankles -->
+                    <circle class="body-part" id="ankle-r-front" cx="260" cy="760" r="10" />
+                    <circle class="body-part" id="ankle-l-front" cx="240" cy="760" r="10" />
+                    <!-- Feet -->
+                    <path class="body-part" id="foot-r-front" d="M260 760 L280 780 L250 780 Z" />
+                    <path class="body-part" id="foot-l-front" d="M240 760 L220 780 L250 780 Z" />
+                </g>
+            </svg>
+        `;
+    };
+
+    const getBackBodyMapSVG = () => {
+        return `
+            <svg class="pain-map-svg" viewBox="0 0 500 800" xmlns="http://www.w3.org/2000/svg">
+                <g fill="#c4a58b" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <!-- Head -->
+                    <path class="body-part" id="head-back" d="M250 50 C280 50, 300 70, 300 100 C300 130, 280 150, 250 150 C220 150, 200 130, 200 100 C200 70, 220 50, 250 50 Z" />
+                    <!-- Neck -->
+                    <path class="body-part" id="neck-back" d="M240 150 L260 150 L260 170 L240 170 Z" />
+                    <!-- Back -->
+                    <path class="body-part" id="back-back" d="M250 170 C280 170, 300 210, 300 240 L300 400 C300 430, 280 460, 250 460 C220 460, 200 430, 200 400 L200 240 C200 210, 220 170, 250 170 Z" />
+                    <!-- Shoulders -->
+                    <path class="body-part" id="shoulder-r-back" d="M300 170 C350 180, 370 200, 380 220 L370 240 L300 230 Z" />
+                    <path class="body-part" id="shoulder-l-back" d="M200 170 C150 180, 130 200, 120 220 L130 240 L200 230 Z" />
+                    <!-- Arms -->
+                    <path class="body-part" id="arm-r-back" d="M370 240 L380 340 C390 380, 410 400, 420 420 L400 440 L350 420 L340 320 Z" />
+                    <path class="body-part" id="arm-l-back" d="M130 240 L120 340 C110 380, 90 400, 80 420 L100 440 L150 420 L160 320 Z" />
+                    <!-- Elbows -->
+                    <circle class="body-part" id="elbow-r-back" cx="375" cy="320" r="10" />
+                    <circle class="body-part" id="elbow-l-back" cx="125" cy="320" r="10" />
+                    <!-- Forearms -->
+                    <path class="body-part" id="forearm-r-back" d="M375 320 C380 350, 390 400, 395 440 L405 440 C410 400, 400 350, 395 320 Z" />
+                    <path class="body-part" id="forearm-l-back" d="M125 320 C120 350, 110 400, 105 440 L95 440 C90 400, 100 350, 105 320 Z" />
+                    <!-- Hands -->
+                    <path class="body-part" id="hand-r-back" d="M395 440 L420 460 L410 480 L385 460 Z" />
+                    <path class="body-part" id="hand-l-back" d="M105 440 L80 460 L90 480 L115 460 Z" />
+                    <!-- Buttocks -->
+                    <path class="body-part" id="buttocks-back" d="M250 460 C280 460, 300 490, 300 520 C300 550, 280 580, 250 580 C220 580, 200 550, 200 520 C200 490, 220 460, 250 460 Z" />
+                    <!-- Thighs -->
+                    <path class="body-part" id="thigh-r-back" d="M250 580 L280 580 C300 600, 310 640, 300 680 C290 720, 270 740, 250 740 L250 580 Z" />
+                    <path class="body-part" id="thigh-l-back" d="M250 580 L220 580 C200 600, 190 640, 200 680 C210 720, 230 740, 250 740 L250 580 Z" />
+                    <!-- Knees -->
+                    <circle class="body-part" id="knee-r-back" cx="280" cy="700" r="10" />
+                    <circle class="body-part" id="knee-l-back" cx="220" cy="700" r="10" />
+                    <!-- Calves -->
+                    <path class="body-part" id="calf-r-back" d="M280 700 L280 800 C280 820, 270 840, 260 840 L250 800 L250 700 Z" />
+                    <path class="body-part" id="calf-l-back" d="M220 700 L220 800 C220 820, 230 840, 240 840 L250 800 L250 700 Z" />
+                    <!-- Ankles -->
+                    <circle class="body-part" id="ankle-r-back" cx="260" cy="840" r="10" />
+                    <circle class="body-part" id="ankle-l-back" cx="240" cy="840" r="10" />
+                    <!-- Feet -->
+                    <path class="body-part" id="foot-r-back" d="M260 840 L280 860 L250 860 Z" />
+                    <path class="body-part" id="foot-l-back" d="M240 840 L220 860 L250 860 Z" />
+                </g>
+            </svg>
+        `;
+    };
+    
+    // Initial render
+    render();
 </script>
 
 </body>
 </html>
-
