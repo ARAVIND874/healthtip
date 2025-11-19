@@ -520,7 +520,8 @@ Please provide a response in ${currentLang === 'ta' ? 'Tamil' : 'English'}. Form
             const payload = { contents: chatHistory };
 
             const apiKey = "AIzaSyAWtIhyemtZsj0Q2OIrCTRfdGzzaobDTEk";
-           const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+           // பழைய வரியை நீக்கிவிட்டு இதை போடவும்:
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
             const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -1315,6 +1316,7 @@ ${allEntries}`;
 
 </body>
 </html>
+
 
 
 
